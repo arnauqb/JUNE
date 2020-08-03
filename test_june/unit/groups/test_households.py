@@ -4,12 +4,13 @@ import numpy as np
 from june.demography.geography import Area
 from june.groups.household import (
     Household,
+    Households,
     HouseholdSingle,
     HouseholdCouple,
     HouseholdFamily,
     HouseholdStudent,
     HouseholdCommunal,
-)  # Households
+)  
 from june.demography import Person
 
 
@@ -60,39 +61,62 @@ class TestHousehold:
 
 class TestHouseholdSingle:
     def test__household_single(self):
-        household = HouseholdSingle(area="test", young_adults=1)
-        assert household._young_adults == 1
+        household = HouseholdSingle(area="test", old=False)
+        assert household.composition.n_young_adults_range == (0,1)
+        assert household.composition.n_kids_range == (0, 0)
+        assert household.composition.n_adults_range == (0, 1)
         assert household.spec == "household"
         assert household.type == "single"
         assert household.area == "test"
+        assert household.max_size == 1
+        household = HouseholdSingle(area="test", old=True)
+        assert household.composition.n_kids_range == (0, 0)
+        assert household.composition.n_young_adults_range == (0, 0)
+        assert household.composition.n_adults_range == (0, 0)
+        assert household.composition.n_old_adults_range == (1, 1)
         assert household.max_size == 1
 
 
 class TestHouseholdCouple:
     def test__household_couple(self):
-        household = HouseholdCouple(adults=2)
-        assert household._adults == 2
+        household = HouseholdCouple(old=False)
+        assert household.composition.n_kids_range == (0,0)
+        assert household.composition.n_young_adults_range == (1,2)
+        assert household.composition.n_adults_range == (1,2)
+        assert household.composition.n_old_adults_range == (0,1)
         assert household.type == "couple"
         assert household.spec == "household"
         assert household.max_size == 2
-        household = HouseholdCouple()
+        household = HouseholdCouple(old=True)
+        assert household.composition.n_adults_range == (0,0)
+        assert household.composition.n_old_adults_range == (2,2)
+        assert household.composition.n_young_adults_range == (0,0)
+        assert household.composition.n_kids_range == (0,0)
 
 
 class TestHouseholdFamily:
     def test__household_family(self):
-        household = HouseholdFamily(kids=1, adults=2)
-        assert household._kids == 1
-        assert household._adults == 2
+        household = HouseholdFamily(n_parents=1, n_kids_range=(2,np.inf))
+        assert household.composition.n_kids_range == (2, np.inf)
+        assert household.composition.n_adults_range == (0,1)
+        assert household.composition.n_young_adults_range == (0,1)
+        assert household.composition.n_old_adults_range == (0,0)
         assert household.type == "family"
         assert household.spec == "household"
-        assert household.max_size == 3
+        assert household.max_size == np.inf
+        household = HouseholdFamily(n_parents=2, n_young_adults_range=(1,1), n_kids_range=1, n_old_adults_range=(1,2))
+        assert household.composition.n_kids_range == (1,1)
+        assert household.composition.n_adults_range == (2,2)
+        assert household.composition.n_young_adults_range == (1,1)
+        assert household.composition.n_old_adults_range == (1,2)
 
 
 class TestHouseholdStudent:
     def test__household_student(self):
-        household = HouseholdStudent()
+        household = HouseholdStudent(n_students=4)
         assert household.type == "student"
         assert household.spec == "household"
+        assert household.composition.n_young_adults_range == (4, 4)
 
 
 class TestHouseholdCommunal:
@@ -100,6 +124,10 @@ class TestHouseholdCommunal:
         household = HouseholdCommunal()
         assert household.type == "communal"
         assert household.spec == "household"
+        assert household.composition.n_kids_range == (0, np.inf)
+        assert household.composition.n_young_adults_range == (0, np.inf)
+        assert household.composition.n_adults_range == (0, np.inf)
+        assert household.composition.n_old_adults_range == (0, np.inf)
 
 
 class TestHouseholdsCreation:
@@ -108,43 +136,38 @@ class TestHouseholdsCreation:
         compositions = {
             "single": {1: {"old": True, "number": 10}, 2: {"old": False, "number": 5}},
             "couple": {1: {"old": True, "number": 15}, 2: {"old": False, "number": 7}},
-            "families": {
+            "family": {
                 1: {
-                    "kids": 1,
-                    "young_adults": 0,
-                    "adults": 1,
-                    "old_adults": 0,
+                    "n_kids": 1,
+                    "n_parents" : 2,
                     "number": 5,
                 },
                 2: {
-                    "kids": "2+",
-                    "young_adults": 0,
-                    "adults": 2,
-                    "old_adults": 0,
+                    "n_kids": "2+",
+                    "n_parents": 2,
                     "number": 4,
                 },
                 3: {
-                    "kids": 1,
-                    "young_adults": 0,
-                    "adults": 2,
-                    "old_adults": 1,
+                    "n_kids": 1,
+                    "n_parents": 2,
+                    "n_old_adults": 1,
                     "number": 3,
                 },
                 4: {
-                    "kids": 0,
-                    "young_adults": 2,
-                    "adults": 2,
-                    "old_adults": 0,
+                    "n_kids": 0,
+                    "n_young_adults": 2,
+                    "n_parents": 2,
+                    "n_old_adults": 0,
                     "number": 2,
                 },
             },
             "students": {"number": 10},
             "communal": {"number": 3},
             "other": {
-                "kids": 0,
-                "young_adults": "2+",
-                "adults": "1+",
-                "old_adults": 1,
+                "n_kids": 0,
+                "n_young_adults": "2+",
+                "n_adults": "1+",
+                "n_old_adults": 1,
                 "number": 2,
             },
         }
