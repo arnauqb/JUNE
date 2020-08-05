@@ -161,7 +161,7 @@ class TestHouseholdsCreation:
                     "number": 2,
                 },
             },
-            "students": {"number": 10},
+            "student": {"number": 10},
             "communal": {"number": 3},
             "other": {
                 "n_kids": 0,
@@ -175,7 +175,7 @@ class TestHouseholdsCreation:
         return households
 
     def test__number_of_households(self, households):
-        assert len(households) == 5 + 7 + 5 + 4 + 3 + 2 + 10 + 3 + 2
+        assert len(households) == 10 + 5 + 15 + 7 + 5 + 4 + 3 + 2 + 10 + 3 + 2
 
     def test__households_from_compositions(self, households):
         family_households = [
@@ -186,19 +186,19 @@ class TestHouseholdsCreation:
         young_adults = np.zeros(10)
         adults = np.zeros(10)
         old_adults = np.zeros(10)
-        for household in households:
-            if household._kids == 0:
+        for household in family_households:
+            if household.composition.n_kids_range == (0, 0):
                 kids[0] += 1
-            elif household._kids == 1:
+            elif household.composition.n_kids_range == (1, 1):
                 kids[1] += 1
             else:
                 kids[2] += 1
-            if household._adults == 1:
+            if household.composition.n_adults_range == (1, 1):
                 adults[1] += 1
-            elif household._adults == 2:
+            elif household.composition.n_adults_range == (2, 2):
                 adults[2] += 1
 
-            if household._old_adults == 0:
+            if household.composition.n_old_adults_range == (0, 0):
                 old_adults[1] += 1
 
         assert kids[0] == 2

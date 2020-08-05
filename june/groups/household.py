@@ -9,8 +9,23 @@ from june.demography import Person
 from june.demography.geography import Area
 
 
-def str2class(str):
+def _str2class(str):
     return getattr(sys.modules[__name__], str)
+
+
+def _parse_household_config_value(value: Union[int, str]):
+    if type(value) == str:
+        if "+" in value:
+            return (int(value.split("+")[0]), np.inf)
+    return value
+
+
+def _parse_composition_config(composition: dict):
+    ret = {}
+    for key in composition:
+        if key in ["n_kids", "n_young_adults", "n_adults", "n_old_adults"]:
+            ret[key + "_range"] = _parse_household_config_value(composition[key])
+    return ret
 
 
 class HouseholdComposition:
@@ -238,7 +253,10 @@ class HouseholdFamily(Household):
         n_young_adults_range=(0, 0),
         n_old_adults_range=(0, 0),
     ):
-        if n_young_adults_range[0] > 0:  # non-dependent kids, require older parents
+        if (
+            type(n_young_adults_range) == tuple and n_young_adults_range[0] > 0
+            or type(n_young_adults_range) == int and n_young_adults_range > 0
+        ):  # non-dependent kids, require older parents
             super().__init__(
                 area=area,
                 n_kids_range=n_kids_range,
@@ -326,17 +344,18 @@ class Households(Supergroup):
             composition_type_class_name = (
                 "Household" + composition_type[0].upper() + composition_type[1:]
             )
-            household_class = str2class(composition_type_class_name)
+            household_class = _str2class(composition_type_class_name)
             if "number" in composition_dict:
                 number = composition_dict["number"]
-                del composition_dict["number"]
+                composition_parsed = _parse_composition_config(composition_dict)
                 for _ in range(number):
-                    households.append(household_class(**composition_dict))
+                    households.append(household_class(**composition_parsed))
             else:
                 for config_number in composition_dict:
                     number = composition_dict[config_number]["number"]
-                    del composition_dict[config_number]["number"]
+                    composition_parsed = _parse_composition_config(
+                        composition_dict[config_number]
+                    )
                     for _ in range(number):
-                        composition_properties = composition_dict[config_number]
-                        households.append(household_class(**composition_properties))
+                        households.append(household_class(**composition_parsed))
         return cls(households)
