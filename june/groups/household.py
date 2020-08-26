@@ -8,14 +8,18 @@ from june.groups import Group, Supergroup
 from june.demography import Person, Geography
 from june.demography.geography import Area
 
-default_household_sizes_filename = paths.data_path / "input/households/household_size_per_area.csv"
+default_household_sizes_filename = (
+    paths.data_path / "input/households/household_size_per_area.csv"
+)
+
+default_communal_filename = (
+    paths.data_path
+    / "input/households/communal_residents_and_establishments_per_area.csv"
+)
+
 
 class Household(Group):
-    __slots__ = (
-        "type",
-        "area",
-        "residents",
-    )
+    __slots__ = ("area", "residents", "max_size", "type")
 
     class SubgroupType(IntEnum):
         kids = 0
@@ -23,17 +27,14 @@ class Household(Group):
         adults = 2
         old_adults = 3
 
-    def __init__(
-        self,
-        area: Area = None,
-        size: int = None,
-    ):
+    def __init__(self, area: Area = None, size: int = None, type: str = None):
         super().__init__()
         if size is None:
             self.max_size = np.inf
         else:
             self.max_size = size
         self.area = area
+        self.type = type
         self.residents = ()
 
     def add(self, person, activity="residence"):
@@ -63,10 +64,6 @@ class Household(Group):
             return self.subgroups[self.SubgroupType.adults]
         else:
             return self.subgroups[self.SubgroupType.old_adults]
-
-    @property
-    def max_size(self):
-        return self.max_size
 
     @property
     def kids(self):
@@ -100,20 +97,34 @@ class Household(Group):
     def n_old_adults(self):
         return len(self.old_adults)
 
+
 class Households(Supergroup):
     def __init__(self, households: List[Household]):
         super().__init__()
         self.members = households
 
     @classmethod
-    def _create_household(area, size):
-        household = Household(area=area, size=int(size))
+    def _create_household(cls, area, size, type=None):
+        household = Household(area=area, size=int(size), type=type)
         area.households.append(household)
         return household
 
     @classmethod
-    def for_geography(cls, geography: Geography, household_size_per_area_filename: str = default_household_sizes_filename):
-        household_size_per_area = pd.read_csv(household_size_per_area_filename, index_col=0)
+    def for_geography(
+        cls,
+        geography: Geography,
+        household_size_per_area_filename: str = default_household_sizes_filename,
+        communal_residents_and_establishments_per_area_filename: str = default_communal_filename,
+    ):
+        household_size_per_area = pd.read_csv(
+            household_size_per_area_filename, index_col=0
+        )
+        if communal_residents_and_establishments_per_area_filename is not None:
+            communal_per_area = pd.read_csv(
+                communal_residents_and_establishments_per_area_filename, index_col=0
+            )
+        else:
+            communal_per_area = None
         for area in geography.areas:
             households = []
             sizes = household_size_per_area.loc[area.name]
@@ -121,21 +132,38 @@ class Households(Supergroup):
                 for _ in range(int(size_number)):
                     household = cls._create_household(area=area, size=size)
                     households.append(household)
+            if communal_per_area is not None:
+                communal_data = communal_per_area.loc[area.name]
+                communal_residents = communal_data["residents"]
+                communal_establishments = communal_data["establishments"]
+                if communal_residents:
+                    sizes = [
+                        communal_residents // communal_establishments
+                    ] * communal_establishments
+                    remaining_residents = communal_residents % communal_establishments
+                    for i in range(remaining_residents):
+                        sizes[i % len(sizes)] += 1
+                    for size in sizes:
+                        household = cls._create_household(
+                            area=area, size=size, type="communal"
+                        )
+                        communal_residents = communal_residents - size
+                        households.append(household)
         return cls(households)
 
 
-#def _str2class(str):
+# def _str2class(str):
 #    return getattr(sys.modules[__name__], str)
 #
 #
-#def _parse_household_config_value(value: Union[int, str]):
+# def _parse_household_config_value(value: Union[int, str]):
 #    if type(value) == str:
 #        if "+" in value:
 #            return (int(value.split("+")[0]), np.inf)
 #    return value
 #
 #
-#def _parse_composition_config(composition: dict):
+# def _parse_composition_config(composition: dict):
 #    ret = {}
 #    for key in composition:
 #        if key in ["n_kids", "n_young_adults", "n_adults", "n_old_adults"]:
@@ -143,21 +171,21 @@ class Households(Supergroup):
 #    return ret
 
 
-#class HouseholdComposition:
+# class HouseholdComposition:
 #    """
 #    This class represents the household composition we would expect from census data.
-#    It might not actually be the final household composition of a household, since we may 
+#    It might not actually be the final household composition of a household, since we may
 #    not be able to match the population perfectly.
 #
 #    Parameters
 #    ----------
-#    n_kids_range: 
+#    n_kids_range:
 #        if int, then the allowed number of kids in the house, if tuple, the number range allowed.
-#    n_young_adults_range: 
+#    n_young_adults_range:
 #        if int, then the allowed number of young adults in the house, if tuple, the number range allowed.
-#    n_adults_range: 
+#    n_adults_range:
 #        if int, then the allowed number of adults in the house, if tuple, the number range allowed.
-#    n_adults_range: 
+#    n_adults_range:
 #        if int, then the allowed number of old adults in the house, if tuple, the number range allowed.
 #    """
 #
@@ -205,7 +233,7 @@ class Households(Supergroup):
 #        )
 #
 #
-#class Household(Group):
+# class Household(Group):
 #    __slots__ = (
 #        "type",
 #        "area",
@@ -311,7 +339,7 @@ class Households(Supergroup):
 #        return len(self.old_adults)
 #
 #
-#class HouseholdSingle(Household):
+# class HouseholdSingle(Household):
 #    def __init__(self, area: Area = None, old: bool = False):
 #        if old:
 #            super().__init__(
@@ -335,7 +363,7 @@ class Households(Supergroup):
 #        return 1
 #
 #
-#class HouseholdCouple(Household):
+# class HouseholdCouple(Household):
 #    def __init__(self, area: Area = None, old=False):
 #        if old:
 #            super().__init__(
@@ -359,7 +387,7 @@ class Households(Supergroup):
 #        return 2
 #
 #
-#class HouseholdFamily(Household):
+# class HouseholdFamily(Household):
 #    def __init__(
 #        self,
 #        area: Area = None,
@@ -389,7 +417,7 @@ class Households(Supergroup):
 #            )
 #
 #
-#class HouseholdStudent(Household):
+# class HouseholdStudent(Household):
 #    def __init__(self, area=None, n_students=0):
 #        super().__init__(
 #            area=area,
@@ -400,7 +428,7 @@ class Households(Supergroup):
 #        )
 #
 #
-#class HouseholdCommunal(Household):
+# class HouseholdCommunal(Household):
 #    def __init__(
 #        area=None,
 #        n_kids_range=(0, np.inf),
@@ -417,7 +445,7 @@ class Households(Supergroup):
 #        )
 #
 #
-#class HouseholdOther(Household):
+# class HouseholdOther(Household):
 #    def __init__(
 #        area=None,
 #        n_kids_range=(0, np.inf),
@@ -434,7 +462,7 @@ class Households(Supergroup):
 #        )
 #
 #
-#class Households(Supergroup):
+# class Households(Supergroup):
 #    def __init__(self, households: List[Household]):
 #        super().__init__()
 #        self.members = households
