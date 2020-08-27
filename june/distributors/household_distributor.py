@@ -23,7 +23,7 @@ default_config_filename = (
 )
 
 default_household_composition_filename = (
-    paths.data_path / "input/households/household_composition_by_area.csv"
+    paths.data_path / "input/households/household_composition_by_area.json"
 )
 
 default_number_students_filename = (
@@ -44,22 +44,29 @@ class PersonFinder:
     Finds a person in the area with the given characteristics if that person
     has not been picked before (ie is not in a household)
     """
-    def __init__(self, population: List[Person]):
+
+    def __init__(
+        self,
+        population: List[Person],
+        first_kid_parent_age_differences: dict,
+        second_kid_parent_age_differences: dict,
+        couples_age_differences: dict,
+    ):
         self.population_dict = self._generate_population_dict(population)
 
     def _generate_population_dict(self, population):
         population_dict = {}
         for ethnicity in "ABCDE":
             population_dict[ethnicity] = {}
-            for sex in ['m', 'f']:
+            for sex in ["m", "f"]:
                 population_dict[ethnicity][sex] = {}
-                for age in np.arange(0,100):
+                for age in np.arange(0, 100):
                     population_dict[ethnicity][sex][age] = []
         for person in population:
             population_dict[person.ethnicity][person.sex][person.age].append(person)
         return population_dict
 
-    def __call__(self, age, sex, ethnicity=None):
+    def find_person(self, age, sex, ethnicity=None):
         if ethnicity is None:
             ll = list("ABCDE")
             random.shuffle(ll)
@@ -72,6 +79,11 @@ class PersonFinder:
                 return self.population_dict[ethnicity][sex][age].pop()
             else:
                 return None
+    def __call__(self, age, sex, ethnicity = None):
+        return self.find_person(age=age, sex=sex, ethnicity=ethnicity)
+
+    # def find_couple(self, person):
+
 
 class HouseholdComposition:
     """
@@ -92,12 +104,14 @@ class HouseholdComposition:
     n_old_adults_range:
         allowed number of kids in the household given the census data
     """
+
     age_groups_ranges = [
         "n_kids_range",
         "n_young_adults_range",
         "n_adults_range",
         "n_old_adults_range",
     ]
+
     def __init__(
         self,
         n_kids_range: Union[int, tuple] = None,
@@ -130,7 +144,7 @@ class HouseholdComposition:
         return sum(
             [
                 getattr(self, name)[1]
-                for name in self.age_groups_ranges 
+                for name in self.age_groups_ranges
                 if getattr(self, name) is not None
             ]
         )
@@ -157,6 +171,8 @@ def count_remaining_people(dict1, dict2):
 
 class HouseholdDistributor:
     pass
+
+
 #    def __init__(
 #        self,
 #        first_kid_parent_age_differences: dict,
@@ -269,10 +285,10 @@ class HouseholdDistributor:
 #        ----------
 #        husband_wife_filename:
 #            Path of the CSV file containing in one column the age differences between
-#            wife and husband (relative to the wife) and in the second columns the 
+#            wife and husband (relative to the wife) and in the second columns the
 #            probability of that age difference.
 #        parent_child_filename:
-#            Path of the CSV file containing in one column the age differences between a 
+#            Path of the CSV file containing in one column the age differences between a
 #            mother and her kids. The second and third columns must contain the probabilities
 #            for the first and second kid respectively.
 #        config_filename:
@@ -417,13 +433,13 @@ class HouseholdDistributor:
 #        n_people_in_communal: int,
 #    ) -> Households:
 #        """
-#        Given a populated output area, it distributes the people to households. 
-#        The instance of the Area class, area, should have two dictionary attributes, 
-#        ``men_by_age`` and ``women_by_age``. The keys of the dictionaries are the ages 
+#        Given a populated output area, it distributes the people to households.
+#        The instance of the Area class, area, should have two dictionary attributes,
+#        ``men_by_age`` and ``women_by_age``. The keys of the dictionaries are the ages
 #        and the values are the Person instances. The process of creating these dictionaries
 #        is done in people_distributor.py.
-#        The ``number_households_per_composition`` argument is a dictionary containing the 
-#        number of households per each composition. We obtain this from the nomis dataset and 
+#        The ``number_households_per_composition`` argument is a dictionary containing the
+#        number of households per each composition. We obtain this from the nomis dataset and
 #        should be read by the inputs class in the world init.
 #
 #        Parameters
@@ -431,7 +447,7 @@ class HouseholdDistributor:
 #        area:
 #            area from which to take people and distribute households.
 #        number_households_per_composition:
-#            dictionary containing the different possible household compositions and the number of 
+#            dictionary containing the different possible household compositions and the number of
 #            households with that composition as key.
 #            Example:
 #            The area E00062207 has this configuration:
@@ -783,7 +799,7 @@ class HouseholdDistributor:
 #
 #        Parameters
 #        ----------
-#        area: 
+#        area:
 #            Area in which to create the household.
 #        communal:
 #            Whether it is a communal establishment (True) or not (False).
@@ -921,8 +937,8 @@ class HouseholdDistributor:
 #        self, person: Person, men_by_age, women_by_age, under_65=False, over_65=False
 #    ) -> Person:
 #        """
-#        Given a person, it finds a suitable partner with similar age and opposite sex. 
-#        The age difference is sampled from an observed distribution of age differences 
+#        Given a person, it finds a suitable partner with similar age and opposite sex.
+#        The age difference is sampled from an observed distribution of age differences
 #        in couples in the US and the UK, and it read by __init__. We first try to look
 #        for a female parent, as it is more common to have a single mother than a single
 #        father.
@@ -967,7 +983,7 @@ class HouseholdDistributor:
 #    ) -> Person:
 #        """
 #        Given a person under 18 years old (strictly), it finds a matching mother with an age
-#        difference sampled for the known mother-firstkid age distribution read in the 
+#        difference sampled for the known mother-firstkid age distribution read in the
 #        __init__ function.
 #
 #        Parameters
@@ -1377,7 +1393,7 @@ class HouseholdDistributor:
 #        extra_people_lists=(),
 #    ) -> List[Household]:
 #        """
-#        Fils households with young adults (18 to 35) years old. 
+#        Fils households with young adults (18 to 35) years old.
 #
 #        Parameters
 #        ----------
@@ -1417,7 +1433,7 @@ class HouseholdDistributor:
 #        extra_people_lists=(),
 #    ) -> List[Household]:
 #        """
-#        Fils households with one young adult (18 to 35) and one or two adults. 
+#        Fils households with one young adult (18 to 35) and one or two adults.
 #
 #        Parameters
 #        ----------
@@ -1472,7 +1488,7 @@ class HouseholdDistributor:
 #        area: Area,
 #    ) -> List[Household]:
 #        """
-#        Fils all comunnal establishments with the remaining people that have not been allocated somewhere else. 
+#        Fils all comunnal establishments with the remaining people that have not been allocated somewhere else.
 #
 #        Parameters
 #        ----------
@@ -1578,7 +1594,7 @@ class HouseholdDistributor:
 #        Young adults -> households_with_extra_youngadults, households_with_adults, any
 #        Adults -> households_with_extra_adults, any
 #        Old people -> households_with_extra_oldpeople, any.
-#        
+#
 #        When we allocate someone to any house, we prioritize the houses that have a small
 #        number of people (less than the max_household_size parameter defined in the __init__)
 #
@@ -1593,7 +1609,7 @@ class HouseholdDistributor:
 #        households_with_extra_kids
 #            list of households that take extra kids.
 #        households_with_kids
-#            list of households that already have kids. 
+#            list of households that already have kids.
 #        households_with_extra_youngadults
 #            list of households that take extra young adults.
 #        households_with_extra_oldpeople

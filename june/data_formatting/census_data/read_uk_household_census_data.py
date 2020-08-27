@@ -191,7 +191,7 @@ if __name__ == "__main__":
     for area in default_composition_df.index:
         total_dict[area] = read_household_comp(output_area=area)
         pbar.update(1)
-    with open("test2.json", "w") as f:
+    with open("test.json", "w") as f:
         json.dump(total_dict, f)
 
 

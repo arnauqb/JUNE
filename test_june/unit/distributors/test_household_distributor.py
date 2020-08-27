@@ -34,4 +34,11 @@ class TestPersonFinder:
         p3 = person_finder(sex="f", age=50, ethnicity=None)
         assert p3 is None
 
+    def test__find_couple():
+        person = Person(sex="m", age=27)
+
+
+
+
+
 
