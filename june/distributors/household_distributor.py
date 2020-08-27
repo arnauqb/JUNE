@@ -39,6 +39,12 @@ default_parent_kid_age_difference_filename = (
 )
 
 
+def get_closest_element_and_distance_in_array(array, value):
+    diff = np.abs(value - array)
+    min_idx = np.argmin(diff)
+    return array[min_idx], diff[min_idx]
+
+
 class PersonFinder:
     """
     Finds a person in the area with the given characteristics if that person
@@ -48,41 +54,106 @@ class PersonFinder:
     def __init__(
         self,
         population: List[Person],
-        first_kid_parent_age_differences: dict,
-        second_kid_parent_age_differences: dict,
-        couples_age_differences: dict,
+        first_kid_parent_age_difference: int = 25,
+        second_kid_parent_age_difference: int = 30,
     ):
         self.population_dict = self._generate_population_dict(population)
+        self.available_ethnicities = list("ABCDE")
+        self.first_kid_parent_age_difference = first_kid_parent_age_difference
+        self.second_kid_parent_age_difference = second_kid_parent_age_difference
+
+    def find_partner(
+        self,
+        person: Person,
+        match_ethnicity: bool = False,
+        maximum_age_difference: int = 25,
+    ):
+        """
+        Looks for a partner for the given person. If ``match_ethnicity`` is True, then return a person of the matching ethnicity, if possible.
+        """
+        if match_ethnicity and self.population_dict[person.ethnicity]:
+            partner = self._find_partner_fixed_ethnicity(
+                person, person.ethnicity, maximum_age_difference
+            )
+            if partner is not None:
+                return partner
+        # looking for partner with different ethnicity
+        random.shuffle(self.available_ethnicities)
+        for ethnicity in self.available_ethnicities:
+            if ethnicity not in self.population_dict:
+                continue
+            partner = self._find_partner_fixed_ethnicity(
+                person, ethnicity, maximum_age_difference
+            )
+            if partner is not None:
+                return partner
 
     def _generate_population_dict(self, population):
         population_dict = {}
-        for ethnicity in "ABCDE":
-            population_dict[ethnicity] = {}
-            for sex in ["m", "f"]:
-                population_dict[ethnicity][sex] = {}
-                for age in np.arange(0, 100):
-                    population_dict[ethnicity][sex][age] = []
         for person in population:
+            if person.ethnicity not in population_dict:
+                population_dict[person.ethnicity] = {}
+            if person.sex not in population_dict[person.ethnicity]:
+                population_dict[person.ethnicity][person.sex] = {}
+            if person.age not in population_dict[person.ethnicity][person.sex]:
+                population_dict[person.ethnicity][person.sex][person.age] = []
             population_dict[person.ethnicity][person.sex][person.age].append(person)
         return population_dict
 
-    def find_person(self, age, sex, ethnicity=None):
-        if ethnicity is None:
-            ll = list("ABCDE")
-            random.shuffle(ll)
-            for ethn in ll:
-                if self.population_dict[ethn][sex][age]:
-                    return self.population_dict[ethn][sex][age].pop()
-            return None
-        else:
-            if self.population_dict[ethnicity][sex][age]:
-                return self.population_dict[ethnicity][sex][age].pop()
-            else:
-                return None
-    def __call__(self, age, sex, ethnicity = None):
-        return self.find_person(age=age, sex=sex, ethnicity=ethnicity)
+    def _pop_person(self, ethnicity, sex, age):
+        """
+        Pops a person and deletes the dictionary keys if there are no more
+        people of that age / sex / ethnicity left.
+        """
+        person = self.population_dict[ethnicity][sex][age].pop()
+        if not self.population_dict[ethnicity][sex][age]:
+            del self.population_dict[ethnicity][sex][age]
+            if not self.population_dict[ethnicity][sex]:
+                del self.population_dict[ethnicity][sex]
+                if not self.population_dict[ethnicity]:
+                    del self.population_dict[ethnicity]
+        return person
 
-    # def find_couple(self, person):
+    def _opposite_sex(self, person):
+        if person.sex == "m":
+            return "f"
+        else:
+            return "m"
+
+    def _find_partner_fixed_ethnicity(
+        self, person: Person, ethnicity: str, maximum_age_difference: int = 25
+    ):
+        """
+        Given a person and a target ethnicity, looks for a partner for the person thas has the given ethnicity.
+        To determine the partner's age,
+        Finds a partner for the given person the rules are:
+        - Look for the opposite sex, if not available, then return the same sex.
+        - Look for the closest age, if the difference is larger than ``maximum_age_difference``, then look at the same sex.
+          Always return people aged >= 18 years old.
+        """
+        population_age_sex = self.population_dict[ethnicity]
+        if population_age_sex[self._opposite_sex(person)]:
+            partner_sex = self._opposite_sex(person)
+            if partner_sex in population_age_sex:
+                available_ages = np.array(
+                    [age for age in population_age_sex[partner_sex] if age >= 18]
+                )
+                partner_age, age_diff = get_closest_element_and_distance_in_array(
+                    available_ages, person.age
+                )
+                if age_diff < maximum_age_difference:
+                    return self._pop_person(ethnicity, partner_sex, partner_age)
+        # looking for same sex partner
+        partner_sex = person.sex
+        if partner_sex in population_age_sex:
+            available_ages = np.array(
+                [age for age in population_age_sex[partner_sex] if age >= 18]
+            )
+            partner_age, age_diff = get_closest_element_and_distance_in_array(
+                available_ages, person.age
+            )
+            if age_diff < maximum_age_difference:
+                return self._pop_person(ethnicity, partner_sex, partner_age)
 
 
 class HouseholdComposition:
