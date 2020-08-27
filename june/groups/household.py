@@ -38,6 +38,11 @@ class Household(Group):
         self.residents = ()
 
     def add(self, person, activity="residence"):
+        """
+        Adds a person to the household. The age of the person is checked to distribute them
+        into the correct subgroup. There are 4 possible subgroups: ``kids``, ``young_adults``, ``adults``, and ``old_adults``.
+        If the activity is ``residence``, then we also include the person into a ``self.residents`` tuple.
+        """
         if person.age <= self.kid_max_age:
             subgroup = self.SubgroupType.kids
         elif person.age <= self.young_adult_max_age:
@@ -56,6 +61,10 @@ class Household(Group):
             raise ValueError("activity not supported")
 
     def get_leisure_subgroup(self, person):
+        """
+        When someone visits a household for leisure, we include them in their
+        relevant age subgroup.
+        """
         if person.age <= self.kid_max_age:
             return self.subgroups[self.SubgroupType.kids]
         elif person.age <= self.young_adult_max_age:
@@ -116,6 +125,16 @@ class Households(Supergroup):
         household_size_per_area_filename: str = default_household_sizes_filename,
         communal_residents_and_establishments_per_area_filename: str = default_communal_filename,
     ):
+        """
+        Creates households for a given Geography. For each geography area, we look into
+        the census data to get the household size distribution, and initialise households according
+        to it. The ``household_size_per_area_filename`` should be a Pandas dataframe, with the index
+        being the area name, the columns the household size, and the value the number of households.
+        If the file ``communal_residents_and_establishments_per_area_filename`` is provided, then we
+        also include communal households. Since in the UK census we do not have the exact size of communal
+        households, we divide the number of communal residents by the number of communal households to
+        have an average communal household size. Note that most communal households will be student accomodations.
+        """
         household_size_per_area = pd.read_csv(
             household_size_per_area_filename, index_col=0
         )
@@ -150,6 +169,7 @@ class Households(Supergroup):
                         communal_residents = communal_residents - size
                         households.append(household)
         return cls(households)
+
 
 
 # def _str2class(str):
