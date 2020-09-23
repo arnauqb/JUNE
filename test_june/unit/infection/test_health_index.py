@@ -7,17 +7,37 @@ from june.infection.health_index import HealthIndexGenerator, convert_comorbidit
 
 def test__smaller_than_one():
     index_list = HealthIndexGenerator.from_file()
+    
     increasing_count = 0
     for i in range(len(index_list.prob_lists[0])):
-        index_m = index_list(Person.from_attributes(age=i, sex="m"))
-        index_w = index_list(Person.from_attributes(age=i, sex="f"))
-        bool_m = np.sum(np.round(index_m, 7) <= 1)
-        bool_w = np.sum(np.round(index_w, 7) <= 1)
+        index_m = index_list(Person.from_attributes(age=i, sex="m",socioecon_index=5))
+        index_w = index_list(Person.from_attributes(age=i, sex="f",socioecon_index=5))
+        print('index_m',index_m)
+        bool_m = np.sum(np.round(index_m, 6) <= 1)
+        bool_w = np.sum(np.round(index_w, 6) <= 1)
+        if bool_m + bool_w == 12:
+            increasing_count += 1
+        else:
+            increasing_count == increasing_count
+    assert increasing_count == 121
+
+
+def test__smaller_than_one():
+    index_list = HealthIndexGenerator.from_file()
+
+    increasing_count = 0
+    for i in range(len(index_list.prob_lists[0])):
+        index_m = index_list(Person.from_attributes(age=i, sex="m",socioecon_index=5))
+        index_w = index_list(Person.from_attributes(age=i, sex="f",socioecon_index=5))
+        print('index_m',np.round(index_m, 6),np.round(index_m, 6)<=1)
+        bool_m = np.sum(np.round(index_m, 6) <= 1)
+        bool_w = np.sum(np.round(index_w, 6) <= 1)
         if bool_m + bool_w == 14:
             increasing_count += 1
         else:
             increasing_count == increasing_count
     assert increasing_count == 121
+
 
 
 def test__non_negative_probability():
@@ -30,12 +50,26 @@ def test__non_negative_probability():
     assert negatives == 0
 
 
+
+def  physiological_age():
+    index_list = HealthIndexGenerator.from_file()
+    count=0
+    index_old=0
+    for i in range(len(10)):
+        index_m = index_list(Person.from_attributes(age=75, sex="m",socioecon_index=i))[7]
+        index_w = index_list(Person.from_attributes(age=75, sex="f",socioecon_index=i))[7]
+        if index_old<index_m:
+            count+=1
+    assert count==10
+
+
+
 def test__growing_index():
     index_list = HealthIndexGenerator.from_file()
     increasing_count = 0
     for i in range(len(index_list.prob_lists[0])):
-        index_m = index_list(Person.from_attributes(age=i, sex="m"))
-        index_w = index_list(Person.from_attributes(age=i, sex="f"))
+        index_m = index_list(Person.from_attributes(age=i, sex="m",socioecon_index=5))
+        index_w = index_list(Person.from_attributes(age=i, sex="f",socioecon_index=5))
 
         if sum(np.sort(index_w) == index_w) != len(index_w):
             increasing_count += 0
@@ -115,9 +149,9 @@ def test__comorbidities_effect():
         prevalence_reference_population=prevalence_reference_population,
     )
 
-    dummy = Person.from_attributes(sex="f", age=60,)
-    feo = Person.from_attributes(sex="f", age=60, comorbidity="feo")
-    guapo = Person.from_attributes(sex="f", age=60, comorbidity="guapo")
+    dummy = Person.from_attributes(sex="f", age=60,socioecon_index=5)
+    feo = Person.from_attributes(sex="f", age=60, comorbidity="feo",socioecon_index=5)
+    guapo = Person.from_attributes(sex="f", age=60, comorbidity="guapo",socioecon_index=5)
     dummy_health = health_index(dummy)
     feo_health = health_index(feo)
     guapo_health = health_index(guapo)
@@ -165,12 +199,12 @@ def test__apply_hospitalisation_correction():
             adjust_hospitalisation_adults=True
     )
 
-    dummy = Person.from_attributes(sex="f", age=65,)
+    dummy = Person.from_attributes(sex="f", age=65,socioecon_index=5)
     hi = health_index(dummy)
     adjusted_hi = adjusted_health_index(dummy)
     np.testing.assert_allclose(adjusted_hi, hi)
     
-    dummy = Person.from_attributes(sex="f", age=18,)
+    dummy = Person.from_attributes(sex="f", age=18,socioecon_index=5)
     hi = np.diff(health_index(dummy), prepend=0., append=1.)
     adjusted_hi = np.diff(adjusted_health_index(dummy), prepend=0., append=1.)
     assert sum(adjusted_hi) == 1.
@@ -180,7 +214,7 @@ def test__apply_hospitalisation_correction():
     assert adjusted_hi[6] == pytest.approx(hi[6], rel=0.01)
     assert adjusted_hi[7] == pytest.approx(hi[7], rel=0.01)
 
-    dummy = Person.from_attributes(sex="f", age=40,)
+    dummy = Person.from_attributes(sex="f", age=40,socioecon_index=5)
     hi = np.diff(health_index(dummy), prepend=0., append=1.)
     adjusted_hi = np.diff(adjusted_health_index(dummy), prepend=0., append=1.)
     assert sum(adjusted_hi) == 1.

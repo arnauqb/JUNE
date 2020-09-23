@@ -12,6 +12,10 @@ default_death_hosp_filename = paths.configs_path / "defaults/Death_hosp.dat"
 default_hosp_cases_filename = paths.configs_path / "defaults/cases_hosp.dat"
 
 
+default_physiological_age_female = paths.configs_path / "defaults/infection/physiological_age_female.dat"
+default_physiological_age_male = paths.configs_path / "defaults/infection/physiological_age_male.dat"
+
+
 RKIdata = [
     [0.0, 4.0 / 100.0],
     [5.0, 4.0 / 100.0],
@@ -62,7 +66,10 @@ class HealthIndexGenerator:
         hosp_cases: dict,
         icu_hosp: dict,
         death_hosp: dict,
-
+        
+        physio_age_female: dict,
+        physio_age_male: dict,
+        
         asymptomatic_ratio=0.2,
         comorbidity_multipliers: Optional[dict] = None,
         prevalence_reference_population: Optional[dict] = None,
@@ -88,6 +95,10 @@ class HealthIndexGenerator:
         self.hosp_cases = hosp_cases
         self.icu_hosp = icu_hosp
         self.death_hosp = death_hosp
+
+        self.physiological_age_female = physio_age_female
+        self.physiological_age_male  =  physio_age_male
+
         self.asymptomatic_ratio = asymptomatic_ratio
         self.adjust_hospitalisation_adults = adjust_hospitalisation_adults
         self.make_list()
@@ -117,6 +128,10 @@ class HealthIndexGenerator:
         hosp_filename: str = default_hosp_cases_filename,
         icu_filename: str = default_icu_hosp_filename,
         death_filename: str = default_death_hosp_filename,
+        
+        physiological_age_female_filename: str = default_physiological_age_female,
+        physiological_age_male_filename: str =  default_physiological_age_male,
+
         asymptomatic_ratio=0.2,
         comorbidity_multipliers=None,
         prevalence_reference_population=None,
@@ -167,11 +182,18 @@ class HealthIndexGenerator:
         interp_male_death=interpolate.interp1d(age_death,male_death, bounds_error=False, \
                                                             fill_value=male_death[-1])
         death_hosp=[interp_female_death(age),interp_male_death(age)]
+        
+
+        physio_age_female=pd.read_csv(physiological_age_female_filename,delimiter=' ', header=0).values        
+        physio_age_male=pd.read_csv(physiological_age_male_filename,delimiter=' ', header=0).values
+        
 
         return cls(
             hosp_cases,
             icu_hosp,
             death_hosp,
+            physio_age_female,
+            physio_age_male,
             asymptomatic_ratio,
             comorbidity_multipliers=comorbidity_multipliers,
             prevalence_reference_population=prevalence_reference_population,
@@ -341,7 +363,20 @@ class HealthIndexGenerator:
 
         self.prob_lists[0, :, 2] = prob_home_severe_female - deaths_at_home_female
         self.prob_lists[1, :, 2] = prob_home_severe_male - deaths_at_home_male
-        
+    
+
+    def physio_age(self,age,sex,depravation_index):
+        if age>=90:
+           physio_age=age
+        else:
+           if sex==0:
+              physio_age=self.physiological_age_female[age][depravation_index]
+           if sex==1:
+              physio_age=self.physiological_age_male[age][depravation_index]
+        return int(round(physio_age))
+
+
+    
 
     def __call__(self, person):
         """
@@ -357,7 +392,13 @@ class HealthIndexGenerator:
         else:
             sex = 0
         round_age = int(round(person.age))
-        probabilities = self.prob_lists[sex][round_age]
+        
+        if person.socioecon_index!=None:
+            depravation_index=int(person.socioecon_index)
+            physiological_age=self.physio_age(round_age,sex,depravation_index)
+            probabilities = self.prob_lists[sex][physiological_age]
+        else:
+             probabilities = self.prob_lists[sex][round_age]
         if self.adjust_hospitalisation_adults:
             probabilities = self.adjust_hospitalisation(probabilities, person.age)
         if hasattr(self, "comorbidity_multipliers") and person.comorbidity is not None:
