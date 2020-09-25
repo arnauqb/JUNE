@@ -12,8 +12,12 @@ default_death_hosp_filename = paths.configs_path / "defaults/Death_hosp.dat"
 default_hosp_cases_filename = paths.configs_path / "defaults/cases_hosp.dat"
 
 
-default_physiological_age_female = paths.configs_path / "defaults/infection/physiological_age_female.dat"
-default_physiological_age_male = paths.configs_path / "defaults/infection/physiological_age_male.dat"
+#default_physiological_age_female = paths.configs_path / "defaults/infection/physiological_age_female.dat"
+#default_physiological_age_male = paths.configs_path / "defaults/infection/physiological_age_male.dat"
+
+
+default_physiological_age_female = paths.configs_path / "defaults/infection/physiological_age_female_no_treshold.dat"
+default_physiological_age_male = paths.configs_path / "defaults/infection/physiological_age_male_no_treshold.dat"
 
 
 RKIdata = [
@@ -184,8 +188,8 @@ class HealthIndexGenerator:
         death_hosp=[interp_female_death(age),interp_male_death(age)]
         
 
-        physio_age_female=pd.read_csv(physiological_age_female_filename,delimiter=' ', header=0).values        
-        physio_age_male=pd.read_csv(physiological_age_male_filename,delimiter=' ', header=0).values
+        physio_age_female=pd.read_csv(physiological_age_female_filename,delimiter=' ', header=0,usecols =[i for i in range(1,101)]).values        
+        physio_age_male=pd.read_csv(physiological_age_male_filename,delimiter=' ', header=0,usecols =[i for i in range(1,101)] ).values
         
 
         return cls(
@@ -370,9 +374,9 @@ class HealthIndexGenerator:
            physio_age=age
         else:
            if sex==0:
-              physio_age=self.physiological_age_female[age][depravation_index]
+              physio_age=self.physiological_age_female[age][depravation_index-1]
            if sex==1:
-              physio_age=self.physiological_age_male[age][depravation_index]
+              physio_age=self.physiological_age_male[age][depravation_index-1]
         return int(round(physio_age))
 
 
