@@ -9,12 +9,14 @@ from june.demography import Person, Geography
 from june.demography.geography import Area
 
 default_household_sizes_filename = (
-    paths.data_path / "input/households/household_size_per_area.csv"
+    "/home/arnau/code/JUNE/data_household_refactor/input/households/household_size_per_area.csv"
+    # paths.data_path / "input/households/household_size_per_area.csv"
 )
 
 default_communal_filename = (
-    paths.data_path
-    / "input/households/communal_residents_and_establishments_per_area.csv"
+    "/home/arnau/code/JUNE/data_household_refactor/input/households/communal_residents_and_establishments_per_area.csv"
+    # paths.data_path
+    # / "input/households/communal_residents_and_establishments_per_area.csv"
 )
 
 
@@ -40,8 +42,10 @@ class Household(Group):
     def add(self, person, activity="residence"):
         """
         Adds a person to the household. The age of the person is checked to distribute them
-        into the correct subgroup. There are 4 possible subgroups: ``kids``, ``young_adults``, ``adults``, and ``old_adults``.
-        If the activity is ``residence``, then we also include the person into a ``self.residents`` tuple.
+        into the correct subgroup. There are 4 possible subgroups: ``kids``, ``young_adults``,
+        ``adults``, and ``old_adults``.
+        If the activity is ``residence``, then we also include the person into a ``self.residents``
+        tuple.
         """
         if person.age <= self.kid_max_age:
             subgroup = self.SubgroupType.kids
@@ -112,8 +116,8 @@ class Households(Supergroup):
         super().__init__()
         self.members = households
 
-    @classmethod
-    def _create_household(cls, area, size, type=None):
+    @staticmethod
+    def create_household(area, size, type=None):
         household = Household(area=area, size=int(size), type=type)
         area.households.append(household)
         return household
@@ -128,12 +132,27 @@ class Households(Supergroup):
         """
         Creates households for a given Geography. For each geography area, we look into
         the census data to get the household size distribution, and initialise households according
-        to it. The ``household_size_per_area_filename`` should be a Pandas dataframe, with the index
-        being the area name, the columns the household size, and the value the number of households.
+        to it. The ``household_size_per_area_filename`` should be a path to csv file, 
+        with the first row specifing the column names, geography, and the household sizes, and 
+        each subsequent row, the area and the number of households of each size:
+        --
+        geography,1,2,3,4,5,6,7,8
+        E00062207,35,48,17,11,2,1,0,0
+        --
+
         If the file ``communal_residents_and_establishments_per_area_filename`` is provided, then we
-        also include communal households. Since in the UK census we do not have the exact size of communal
-        households, we divide the number of communal residents by the number of communal households to
-        have an average communal household size. Note that most communal households will be student accomodations.
+        also include communal households. Since in the UK census we do not have the exact size of
+        communal households, we divide the number of communal residents by the number of communal
+        households to have an average communal household size.
+        Note that most communal households will be student accomodations (in the UK).
+        The file should look like:
+        --
+        geography,establishments,residents
+        E00000001,0,0
+        E00000003,0,0
+        --
+        where establishments is the number of communal households, and residents the number of
+        people living in communal households.
         """
         household_size_per_area = pd.read_csv(
             household_size_per_area_filename, index_col=0
@@ -149,7 +168,7 @@ class Households(Supergroup):
             sizes = household_size_per_area.loc[area.name]
             for size, size_number in sizes.items():
                 for _ in range(int(size_number)):
-                    household = cls._create_household(area=area, size=size)
+                    household = cls.create_household(area=area, size=size)
                     households.append(household)
             if communal_per_area is not None:
                 communal_data = communal_per_area.loc[area.name]
@@ -163,13 +182,12 @@ class Households(Supergroup):
                     for i in range(remaining_residents):
                         sizes[i % len(sizes)] += 1
                     for size in sizes:
-                        household = cls._create_household(
+                        household = cls.create_household(
                             area=area, size=size, type="communal"
                         )
                         communal_residents = communal_residents - size
                         households.append(household)
         return cls(households)
-
 
 
 # def _str2class(str):
