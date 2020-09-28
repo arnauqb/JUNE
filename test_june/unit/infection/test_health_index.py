@@ -47,12 +47,14 @@ def test__physiological_age():
     count=0
     index_old_male=0
     index_old_female=0
-    prob_dying=np.zeros(100)
+    prob_dying_m=np.zeros(100)
+    prob_dying_f=np.zeros(100)
     for i in range(100):
         index_m = index_list(Person.from_attributes(age=75, sex="m",socioecon_index=i+1))[5]
         index_f = index_list(Person.from_attributes(age=75, sex="f",socioecon_index=i+1))[5]
         
-        prob_dying[i-1]=index_m
+        prob_dying_m[i-1]=index_m
+        prob_dying_f[i-1]=index_f
         if index_old_male>=index_m:
             count+=1
             
@@ -60,8 +62,9 @@ def test__physiological_age():
             count+=1
         index_old_male=index_m
         index_old_female=index_f  
-    print(prob_dying)
-    assert count>=180
+    print(prob_dying_m)
+    print(prob_dying_f)
+    assert count>=150
     
 
 def test__phisio__age():
@@ -88,7 +91,7 @@ def test__phisio__age():
     print('male',phisio_age_m,len(phisio_age_m))
     print('female',phisio_age_f,len(phisio_age_m))
      
-    assert count>=180
+    assert count>=150
 
 def test__growing_index():
     index_list = HealthIndexGenerator.from_file()
