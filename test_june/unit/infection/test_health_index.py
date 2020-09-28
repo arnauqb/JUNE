@@ -21,7 +21,7 @@ def test__smaller_than_one():
         print('bool_m',bool_m)
         print('bool_w',bool_w)
 
-        if bool_m + bool_w == 12:
+        if bool_m + bool_w == 14:
             increasing_count += 1
         else:
             increasing_count == increasing_count
@@ -48,9 +48,9 @@ def test__physiological_age():
     index_old_male=0
     index_old_female=0
     prob_dying=np.zeros(100)
-    for i in range(1,101):
-        index_m = index_list(Person.from_attributes(age=75, sex="m",socioecon_index=i))[5]
-        index_f = index_list(Person.from_attributes(age=75, sex="f",socioecon_index=i))[5]
+    for i in range(100):
+        index_m = index_list(Person.from_attributes(age=75, sex="m",socioecon_index=i+1))[5]
+        index_f = index_list(Person.from_attributes(age=75, sex="f",socioecon_index=i+1))[5]
         
         prob_dying[i-1]=index_m
         if index_old_male>=index_m:
