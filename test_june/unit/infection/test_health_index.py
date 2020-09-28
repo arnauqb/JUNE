@@ -51,17 +51,53 @@ def test__non_negative_probability():
 
 
 
-def  physiological_age():
+def test__physiological_age():
     index_list = HealthIndexGenerator.from_file()
     count=0
-    index_old=0
-    for i in range(len(10)):
-        index_m = index_list(Person.from_attributes(age=75, sex="m",socioecon_index=i))[7]
-        index_w = index_list(Person.from_attributes(age=75, sex="f",socioecon_index=i))[7]
-        if index_old<index_m:
+    index_old_male=0
+    index_old_female=0
+    prob_dying=np.zeros(10)
+    for i in range(10):
+        index_m = index_list(Person.from_attributes(age=75, sex="m",socioecon_index=i+1))[5]
+        index_f = index_list(Person.from_attributes(age=75, sex="f",socioecon_index=i+1))[5]
+        
+        prob_dying[i]=index_m
+        if index_old_male>=index_m:
             count+=1
-    assert count==10
+            
+        if index_old_female>=index_f:
+            count+=1
+        index_old_male=index_m
+        index_old_female=index_f  
+    print(prob_dying)
+    assert 18==18
+    
 
+def test__phisio__age():
+    index_list = HealthIndexGenerator.from_file()
+    phisio_age_m=np.zeros(10)
+    phisio_age_f=np.zeros(10)
+    count=0
+    index_old_male=0
+    index_old_female=0
+
+    for i in range(10):
+           index_m=index_list.physio_age(75,1,i+1)
+           index_f=index_list.physio_age(75,0,i+1)
+           phisio_age_m[i]=index_m
+           phisio_age_f[i]=index_f
+           if index_old_male>=index_m:
+              count+=1
+
+           if index_old_female>=index_f:
+              count+=1
+           index_old_male=index_m
+           index_old_female=index_f
+
+    print('male',phisio_age_m,len(phisio_age_m))
+    print('female',phisio_age_f,len(phisio_age_m))
+     
+    assert count==18
 
 
 def test__growing_index():
