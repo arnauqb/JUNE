@@ -13,8 +13,14 @@ def test__smaller_than_one():
         index_m = index_list(Person.from_attributes(age=i, sex="m",socioecon_index=5))
         index_w = index_list(Person.from_attributes(age=i, sex="f",socioecon_index=5))
         print('index_m',index_m)
+        print('index_f',index_w)
+       
         bool_m = np.sum(np.round(index_m, 6) <= 1)
         bool_w = np.sum(np.round(index_w, 6) <= 1)
+        
+        print('bool_m',bool_m)
+        print('bool_w',bool_w)
+
         if bool_m + bool_w == 12:
             increasing_count += 1
         else:
