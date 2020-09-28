@@ -3,3 +3,4 @@ class HouseholdError(BaseException):
 
 class GroupException(Exception):
     pass
+
