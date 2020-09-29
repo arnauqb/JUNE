@@ -471,7 +471,7 @@ class HouseholdCompositionLinker:
         # this part might not be very efficient...
         # brute force!
         found_combination = False
-        for i in range(1, n_households+1):
+        for i in range(1, n_households + 1):
             # trying combination of i households
             size_combinations = combinations(available_sizes, i)
             for combination in size_combinations:
@@ -490,6 +490,36 @@ class HouseholdCompositionLinker:
                 combination.remove(household.max_size)
                 household.composition = HouseholdComposition(
                     young_adults=household.max_size, household_type="student"
+                )
+
+    def link_shared_compositions(
+        self, composition_dict: dict, households: Households, n_adults: int
+    ):
+        available_houses = [
+            household for household in households if household.composition is None
+        ]
+        available_sizes = [household.max_size for household in available_houses]
+        n_households = composition_dict["number"]
+        found_combination = False
+        for i in range(1, n_households + 1):
+            # trying combination of i households
+            size_combinations = combinations(available_sizes, i)
+            for combination in size_combinations:
+                if sum(combination) == n_adults:
+                    found_combination = True
+                    break
+            if found_combination:
+                break
+        if not found_combination:
+            raise HouseholdError(
+                f"Can't find shared household combination to fit people in."
+            )
+        combination = list(combination)
+        for household in available_houses:
+            if household.max_size in combination:
+                combination.remove(household.max_size)
+                household.composition = HouseholdComposition(
+                    adults=household.max_size, household_type="student"
                 )
 
 

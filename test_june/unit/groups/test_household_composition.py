@@ -29,7 +29,7 @@ def make_full_dict():
         },
         "student": {"residents": 40, "number": 10},
         "communal": {"residents": 10, "number": 3},
-        "shared": {"all_adults": "2+", "number": 2,},
+        "shared": {"number": 2,},
     }
 
 

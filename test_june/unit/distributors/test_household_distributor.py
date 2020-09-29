@@ -14,8 +14,9 @@ from june.distributors import (
     HouseholdDistributor,
     PersonFinder,
     HouseholdCompositionAdapter,
-    HouseholdCompositionLinker
+    HouseholdCompositionLinker,
 )
+
 
 @pytest.fixture(name="hc_adapter")
 def make_adapter():
@@ -29,9 +30,11 @@ def make_adapter():
         probabilities_per_age_group=probabilities_per_age_group
     )
 
+
 @pytest.fixture(name="hc_linker")
 def make_hl(hc_adapter):
     return HouseholdCompositionLinker(hc_adapter)
+
 
 class TestPersonFinder:
     def test__find_partner(self):
@@ -55,7 +58,6 @@ class TestPersonFinder:
 
 
 class TestHouseholdCompositionsFromCensus:
-
     def test__compute_actual_household_composition_from_demographics(self, hc_adapter):
         composition = {"kids": "0+", "young_adults": "0+", "adults": 2, "old_adults": 0}
         n_kids = defaultdict(int)
@@ -65,8 +67,7 @@ class TestHouseholdCompositionsFromCensus:
         n_samples = 1000
         for _ in range(n_samples):
             adapted_comp = hc_adapter.adapt_household_composition_to_target_size(
-                composition_dict=composition,
-                target_size=None,
+                composition_dict=composition, target_size=None,
             )
             n_kids[adapted_comp["kids"]] += 1
             n_young_adults[adapted_comp["young_adults"]] += 1
@@ -97,8 +98,7 @@ class TestHouseholdCompositionsFromCensus:
         n_samples = 1000
         for _ in range(n_samples):
             adapted_comp = hc_adapter.adapt_household_composition_to_target_size(
-                composition_dict=composition,
-                target_size=4,
+                composition_dict=composition, target_size=4,
             )
             n_kids[adapted_comp["kids"]] += 1
             n_young_adults[adapted_comp["young_adults"]] += 1
@@ -122,8 +122,7 @@ class TestHouseholdCompositionsFromCensus:
         n_samples = 1000
         for _ in range(n_samples):
             adapted_comp = hc_adapter.adapt_household_composition_to_target_size(
-                composition_dict=composition,
-                target_size=5,
+                composition_dict=composition, target_size=5,
             )
             n_kids[adapted_comp["kids"]] += 1
             n_young_adults[adapted_comp["young_adults"]] += 1
@@ -142,17 +141,26 @@ class TestHouseholdCompositionsFromCensus:
         assert n_young_adults[2] > 0
         assert np.isclose(n_kids[2], 2 * n_young_adults[2], rtol=0.1)
 
+
 class TestLinkHouseholdsAndCompositions:
     def test__link_family_households(self, hc_linker):
         households = Households([])
-        for size, number in zip([3, 5, 7], [5,4,1]):
+        for size, number in zip([3, 5, 7], [5, 4, 1]):
             for _ in range(number):
                 households.add(Household(size=size))
-        composition_dict = {"family": {
-            0: {"kids": 1, "adults": 2, "number": 5,},
-            1: {"kids": "2+", "adults": 2, "number": 4},
-            2: {"kids": "2+", "young_adults": "0+", "adults": "1+", "old_adults": "1+", "number":1},
-        }}
+        composition_dict = {
+            "family": {
+                0: {"kids": 1, "adults": 2, "number": 5,},
+                1: {"kids": "2+", "adults": 2, "number": 4},
+                2: {
+                    "kids": "2+",
+                    "young_adults": "0+",
+                    "adults": "1+",
+                    "old_adults": "1+",
+                    "number": 1,
+                },
+            }
+        }
         hc_linker.link_family_compositions(composition_dict["family"], households)
         for household in households:
             if household.max_size == 3:
@@ -176,7 +184,12 @@ class TestLinkHouseholdsAndCompositions:
         households = Households([])
         for _ in range(15):
             households.add(Household(size=1))
-        comp = {"single": {1: {"old_adults": 1, "number": 10}, 2: {"adults": 1, "number": 5}}}
+        comp = {
+            "single": {
+                1: {"old_adults": 1, "number": 10},
+                2: {"adults": 1, "number": 5},
+            }
+        }
         hc_linker.link_single_compositions(comp["single"], households)
         woa = 0
         wa = 0
@@ -185,7 +198,7 @@ class TestLinkHouseholdsAndCompositions:
             if household.composition.old_adults == 1:
                 woa += 1
             else:
-                assert household.composition.old_adults==0
+                assert household.composition.old_adults == 0
                 assert household.composition.adults == 1
                 wa += 1
         assert woa == 10
@@ -195,7 +208,12 @@ class TestLinkHouseholdsAndCompositions:
         households = Households([])
         for _ in range(15):
             households.add(Household(size=2))
-        comp = {"couple": {1: {"old_adults": 2, "number": 10}, 2: {"adults": 2, "number": 5}}}
+        comp = {
+            "couple": {
+                1: {"old_adults": 2, "number": 10},
+                2: {"adults": 2, "number": 5},
+            }
+        }
         hc_linker.link_couple_compositions(comp["couple"], households)
         woa = 0
         wa = 0
@@ -204,7 +222,7 @@ class TestLinkHouseholdsAndCompositions:
             if household.composition.old_adults == 2:
                 woa += 1
             else:
-                assert household.composition.old_adults==0
+                assert household.composition.old_adults == 0
                 assert household.composition.adults == 2
                 wa += 1
         assert woa == 10
@@ -226,4 +244,20 @@ class TestLinkHouseholdsAndCompositions:
             max_sizes.append(household.max_size)
         assert sizes == max_sizes
 
-
+    def test__link_shared_households(self, hc_linker):
+        households = Households([])
+        sizes = []
+        for _ in range(15):
+            size = max(1, np.random.poisson(4))
+            sizes.append(size)
+            households.add(Household(size=size))
+        comp = {"shared": {"number": 15}}
+        n_adults = sum(sizes)
+        hc_linker.link_shared_compositions(comp["shared"], households, n_adults)
+        max_sizes = []
+        for household in households:
+            assert household.max_size > 0
+            assert household.max_size == household.composition.adults
+            max_sizes.append(household.max_size)
+        assert sizes == max_sizes
+        assert sum(max_sizes) == n_adults
