@@ -21,7 +21,7 @@ default_communal_filename = (
 
 
 class Household(Group):
-    __slots__ = ("area", "residents", "max_size", "type", "composition")
+    __slots__ = ("area", "residents", "max_size", "composition")
 
     class SubgroupType(IntEnum):
         kids = 0
@@ -29,14 +29,14 @@ class Household(Group):
         adults = 2
         old_adults = 3
 
-    def __init__(self, area: Area = None, size: int = None, type: str = None):
+    def __init__(self, area: Area = None, size: int = None):
         super().__init__()
         if size is None:
             self.max_size = np.inf
         else:
             self.max_size = size
         self.area = area
-        self.type = type
+        self.composition = None
         self.residents = ()
 
     def add(self, person, activity="residence"):

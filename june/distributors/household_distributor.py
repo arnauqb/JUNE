@@ -1,6 +1,5 @@
-from collections import OrderedDict
-from collections import defaultdict
-from itertools import chain
+from collections import OrderedDict, defaultdict
+from itertools import chain, combinations
 from typing import List, Union, Dict
 from random import random, shuffle
 import logging
@@ -375,7 +374,8 @@ class HouseholdCompositionLinker:
         """
         households_per_size = defaultdict(list)
         for household in households:
-            households_per_size[household.max_size].append(household)
+            if household.composition is None:
+                households_per_size[household.max_size].append(household)
         uncertain_compositions = []
         for _, composition in composition_dict.items():
             composition_number = composition.pop("number")
@@ -411,6 +411,86 @@ class HouseholdCompositionLinker:
             household.composition = HouseholdComposition.from_dict(
                 adapted_comp, household_type="family"
             )
+
+    def link_single_compositions(self, composition_dict: dict, households: Households):
+        households_per_size = defaultdict(list)
+        for household in households:
+            if household.composition is None:
+                households_per_size[household.max_size].append(household)
+        for _, composition in composition_dict.items():
+            composition_number = composition.pop("number")
+            for _ in range(composition_number):
+                hsize = sum(composition.values())
+                household = self._get_household_from_size_dict(
+                    households_per_size=households_per_size, size=hsize
+                )
+                household.composition = HouseholdComposition.from_dict(
+                    composition, household_type="single"
+                )
+
+    def link_single_compositions(self, composition_dict: dict, households: Households):
+        households_per_size = defaultdict(list)
+        for household in households:
+            if household.composition is None:
+                households_per_size[household.max_size].append(household)
+        for _, composition in composition_dict.items():
+            composition_number = composition.pop("number")
+            for _ in range(composition_number):
+                hsize = sum(composition.values())
+                household = self._get_household_from_size_dict(
+                    households_per_size=households_per_size, size=hsize
+                )
+                household.composition = HouseholdComposition.from_dict(
+                    composition, household_type="single"
+                )
+
+    def link_couple_compositions(self, composition_dict: dict, households: Households):
+        households_per_size = defaultdict(list)
+        for household in households:
+            if household.composition is None:
+                households_per_size[household.max_size].append(household)
+        for _, composition in composition_dict.items():
+            composition_number = composition.pop("number")
+            for _ in range(composition_number):
+                hsize = sum(composition.values())
+                household = self._get_household_from_size_dict(
+                    households_per_size=households_per_size, size=hsize
+                )
+                household.composition = HouseholdComposition.from_dict(
+                    composition, household_type="couple"
+                )
+
+    def link_student_compositions(self, composition_dict: dict, households: Households):
+        available_houses = [
+            household for household in households if household.composition is None
+        ]
+        available_sizes = [household.max_size for household in available_houses]
+        n_students = composition_dict["residents"]
+        n_households = composition_dict["number"]
+        # need to pick n_households that sum to n_students!
+        # this part might not be very efficient...
+        # brute force!
+        found_combination = False
+        for i in range(1, n_households+1):
+            # trying combination of i households
+            size_combinations = combinations(available_sizes, i)
+            for combination in size_combinations:
+                if sum(combination) == n_students:
+                    found_combination = True
+                    break
+            if found_combination:
+                break
+        if not found_combination:
+            raise HouseholdError(
+                f"Can't find student household combination to fit people in."
+            )
+        combination = list(combination)
+        for household in available_houses:
+            if household.max_size in combination:
+                combination.remove(household.max_size)
+                household.composition = HouseholdComposition(
+                    young_adults=household.max_size, household_type="student"
+                )
 
 
 class HouseholdDistributor:

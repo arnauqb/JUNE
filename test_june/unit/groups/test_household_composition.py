@@ -11,7 +11,7 @@ def make_full_dict():
         "single": {1: {"old_adults": 1, "number": 10}, 2: {"adults": 1, "number": 5}},
         "couple": {
             1: {"old_adults": 2, "number": 15},
-            2: {"old_adults": "0+", "adults": "1+", "number": 7},
+            2: {"adults": 2, "number": 7},
         },
         "family": {
             0: {"kids": 1, "adults": 2, "number": 5,},
