@@ -14,7 +14,7 @@ from june import paths
 from june.exc import HouseholdError
 from june.demography import Person
 from june.demography.geography import Area
-from june.groups import Household, Households
+from june.groups.household import Household, Households, HouseholdComposition
 from june.utils.numba_random import random_choice_numba
 
 logger = logging.getLogger(__name__)
@@ -210,7 +210,7 @@ class HouseholdCompositionAdapter:
             return age_group
 
     def _parse_composition_dict(self, composition_dict: dict) -> dict:
-        ret = {}
+        ret = defaultdict(lambda: (0, 0))
         for key, value in composition_dict.items():
             ret[key] = self._parse_age_group_number(age_group=value)
         return ret
@@ -241,10 +241,9 @@ class HouseholdCompositionAdapter:
             total number of people desired in the composition. If None, no constraint.
         """
         resident_ranges = self._parse_composition_dict(composition_dict)
-        resident_numbers = {
-            age_group: resident_range[0]
-            for age_group, resident_range in resident_ranges.items()
-        }
+        resident_numbers = defaultdict(lambda: 0)
+        for age_group, resident_range in resident_ranges.items():
+            resident_numbers[age_group] = resident_range[0]
         if target_size is None:
             for age_group in self.probabilities_per_age_group:
                 n_residents_range = resident_ranges[age_group]
@@ -302,10 +301,9 @@ class HouseholdCompositionAdapter:
         current_resident_number
             how many age group members we have now
         """
-        resident_numbers = {
-            age_group: resident_range[0]
-            for age_group, resident_range in resident_ranges.items()
-        }
+        resident_numbers = defaultdict(lambda: 0)
+        for age_group, resident_range in resident_ranges.items():
+            resident_numbers[age_group] = resident_range[0]
         current_size = sum(resident_numbers.values())
         while current_size < target_size:
             probabilities_of_extra_members = []
@@ -330,14 +328,89 @@ class HouseholdCompositionAdapter:
                 else:
                     resident_numbers[age_groups[1]] += 1
             elif len(probabilities_of_extra_members) == 1:
-                if random() < probabilities_of_extra_members[0]:
-                    resident_numbers[age_groups[0]] += 1
-                else:
-                    break
+                resident_numbers[age_groups[0]] += 1
             else:
                 break
             current_size += 1
         return resident_numbers
+
+
+class HouseholdCompositionLinker:
+    """
+    Links household compositions to households of a given size.
+    """
+
+    def __init__(
+        self,
+        hc_adpater: HouseholdCompositionAdapter,
+        order_of_linking: List[str] = None,
+    ):
+        self.hc_adpater = hc_adpater
+        if order_of_linking is None:
+            order_of_linking = ["single", "couple", "family", "student", "shared"]
+
+    def _get_household_from_size_dict(self, households_per_size, size):
+        hsize = None
+        for available_size in households_per_size:
+            if available_size >= size:
+                hsize = available_size
+                break
+        if hsize is None:
+            raise HouseholdError(
+                "Cannot find a household for given composition!"
+                f"Available household sizes {households_per_size.keys()}, asked size: {size}"
+            )
+        household = households_per_size[hsize].pop()
+        if not households_per_size[hsize]:
+            del households_per_size[hsize]
+        return household
+
+    def link_family_compositions(self, composition_dict: dict, households: Households):
+        """
+        Links family household compositions with a ceratin household.
+        If the composition is certain, ie, the number of residents per age group is known exactly,
+        then the composition is link to household of the proper size.
+        Otherwise, we link to the household that has the closest superior size, and adapt the
+        composition to the actual household size using the HouseholdCompositionAdapter
+        """
+        households_per_size = defaultdict(list)
+        for household in households:
+            households_per_size[household.max_size].append(household)
+        uncertain_compositions = []
+        for _, composition in composition_dict.items():
+            composition_number = composition.pop("number")
+            for _ in range(composition_number):
+                fixed_size = True
+                for value in composition.values():
+                    if type(value) == str:
+                        fixed_size = False
+                        break
+                if fixed_size:
+                    hsize = sum(composition.values())
+                    household = self._get_household_from_size_dict(
+                        households_per_size=households_per_size, size=hsize
+                    )
+                    household.composition = HouseholdComposition.from_dict(
+                        composition, household_type="family"
+                    )
+                else:
+                    uncertain_compositions.append(composition)
+        for composition in uncertain_compositions:
+            minimum_size = sum(
+                range[0]
+                for range in self.hc_adpater._parse_composition_dict(
+                    composition
+                ).values()
+            )
+            household = self._get_household_from_size_dict(
+                households_per_size=households_per_size, size=minimum_size
+            )
+            adapted_comp = self.hc_adpater.adapt_household_composition_to_target_size(
+                composition_dict=composition, target_size=household.max_size
+            )
+            household.composition = HouseholdComposition.from_dict(
+                adapted_comp, household_type="family"
+            )
 
 
 class HouseholdDistributor:

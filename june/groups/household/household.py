@@ -21,7 +21,7 @@ default_communal_filename = (
 
 
 class Household(Group):
-    __slots__ = ("area", "residents", "max_size", "type")
+    __slots__ = ("area", "residents", "max_size", "type", "composition")
 
     class SubgroupType(IntEnum):
         kids = 0
@@ -115,6 +115,9 @@ class Households(Supergroup):
     def __init__(self, households: List[Household]):
         super().__init__()
         self.members = households
+
+    def add(self, household: Household):
+        self.members.append(household)
 
     @staticmethod
     def create_household(area, size, type=None):

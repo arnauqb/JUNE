@@ -14,8 +14,24 @@ from june.distributors import (
     HouseholdDistributor,
     PersonFinder,
     HouseholdCompositionAdapter,
+    HouseholdCompositionLinker
 )
 
+@pytest.fixture(name="hc_adapter")
+def make_adapter():
+    probabilities_per_kid = [0.1, 0.2, 0.3, 0.4]
+    probabilities_per_young_adult = [0.2, 0.4, 0.3, 0.1]
+    probabilities_per_age_group = {
+        "kids": probabilities_per_kid,
+        "young_adults": probabilities_per_young_adult,
+    }
+    return HouseholdCompositionAdapter(
+        probabilities_per_age_group=probabilities_per_age_group
+    )
+
+@pytest.fixture(name="hc_linker")
+def make_hl(hc_adapter):
+    return HouseholdCompositionLinker(hc_adapter)
 
 class TestPersonFinder:
     def test__find_partner(self):
@@ -39,18 +55,6 @@ class TestPersonFinder:
 
 
 class TestHouseholdCompositionsFromCensus:
-
-    @pytest.fixture(name="hc_adapter")
-    def make_adapter(self):
-        probabilities_per_kid = [0.1, 0.2, 0.3, 0.4]
-        probabilities_per_young_adult = [0.2, 0.4, 0.3, 0.1]
-        probabilities_per_age_group = {
-            "kids": probabilities_per_kid,
-            "young_adults": probabilities_per_young_adult,
-        }
-        return HouseholdCompositionAdapter(
-            probabilities_per_age_group=probabilities_per_age_group
-        )
 
     def test__compute_actual_household_composition_from_demographics(self, hc_adapter):
         composition = {"kids": "0+", "young_adults": "0+", "adults": 2, "old_adults": 0}
@@ -137,3 +141,39 @@ class TestHouseholdCompositionsFromCensus:
         assert n_young_adults[1] > 0
         assert n_young_adults[2] > 0
         assert np.isclose(n_kids[2], 2 * n_young_adults[2], rtol=0.1)
+
+class TestLinkHouseholdsAndCompositions:
+    def test__link_family_households(self, hc_linker):
+        households = Households([])
+        for size, number in zip([3, 5], [5,4]):
+            for _ in range(number):
+                households.add(Household(size=size, type="family"))
+        composition_dict = {"family": {
+            0: {"kids": 1, "adults": 2, "number": 5,},
+            1: {"kids": "2+", "adults": 2, "number": 4},
+            #2: {"kids": 1, "adults": 2, "old_adults": 1, "number": 3,},
+            #3: {
+            #    "kids": 0,
+            #    "young_adults": 2,
+            #    "adults": 2,
+            #    "old_adults": 0,
+            #    "number": 2,
+            #},
+            #4: {"kids": "1+", "young_adults": "0+", "adults": "1+", "old_adults": "1+", "number":1},
+            #5: {"kids": "2+", "young_adults": "0+", "adults": "1+", "old_adults": "1+", "number":1},
+        }}
+        hc_linker.link_family_compositions(composition_dict["family"], households)
+        for household in households:
+            if household.max_size == 3:
+                assert household.composition.kids == 1
+                assert household.composition.adults == 2
+                assert household.composition.young_adults == 0
+                assert household.composition.old_adults == 0
+            else:
+                assert household.max_size == 5
+                assert household.composition.kids == 3
+                assert household.composition.adults == 2
+                assert household.composition.young_adults == 0
+                assert household.composition.old_adults == 0
+
+
