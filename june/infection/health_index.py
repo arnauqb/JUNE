@@ -373,10 +373,12 @@ class HealthIndexGenerator:
         if age>=90:
            physio_age=age
         else:
+           dep_index=int(depravation_index*100)-1
            if sex==0:
-              physio_age=self.physiological_age_female[age][depravation_index-1]
+              
+              physio_age=self.physiological_age_female[age][dep_index]
            if sex==1:
-              physio_age=self.physiological_age_male[age][depravation_index-1]
+              physio_age=self.physiological_age_male[age][dep_index]
         return int(round(physio_age))
 
 
@@ -398,8 +400,7 @@ class HealthIndexGenerator:
         round_age = int(round(person.age))
         
         if person.socioecon_index!=None:
-            depravation_index=int(person.socioecon_index-1)
-            physiological_age=self.physio_age(round_age,sex,depravation_index)
+            physiological_age=self.physio_age(round_age,sex,person.socioecon_index)
             probabilities = self.prob_lists[sex][physiological_age]
         else:
              probabilities = self.prob_lists[sex][round_age]
