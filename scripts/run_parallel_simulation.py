@@ -56,7 +56,7 @@ else:
     seed = 999
 set_random_seed(seed)
 
-world_file = f"./tests.hdf5"
+world_file = f"./ne.hdf5"
 config_path = "./config_simulation.yaml"
 
 if seed == 999:
@@ -79,7 +79,7 @@ def generate_simulator():
         }
         # make dictionary super_area_id -> domain
         domain_splitter = DomainSplitter(
-            number_of_domains=mpi_size, super_areas=super_area_names
+            number_of_domains=mpi_size, world_path = world_file,
         )
         super_areas_per_domain = domain_splitter.generate_domain_split(niter=10)
         super_area_names_to_domain_dict = {}
