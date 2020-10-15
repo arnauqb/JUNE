@@ -106,6 +106,16 @@ class Plotter:
         plt.savefig(
             save_dir / "world_socioeconomic_stdev.png", dpi=150, bbox_inches="tight"
         )
+        plt.savefig(
+            save_dir / "world_socioeconomic_stdev.png", dpi=150, bbox_inches="tight"
+        )
+
+        print("Plotting ethnicity")
+        ethnicity_plot = demography_plots.plot_ethnicity_distribution()
+        ethnicity_plot.plot()
+        plt.savefig(
+            save_dir / "ethnicity_distribution.png", dpi=150, bbox_inches="tight"
+        )
 
     def plot_commute(
         self, save_dir: Path = default_output_plots_path / "commute",
@@ -435,6 +445,14 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
     )
+    parser.add_argument(
+        "-d",
+        "--demography",
+        help="Plot only demography",
+        required=False,
+        default=False,
+        action="store_true",
+    )
 
     args = parser.parse_args()
     plotter = Plotter.from_file(args.world_filename)
@@ -444,5 +462,7 @@ if __name__ == "__main__":
         plotter.plot_contact_matrices()
     elif args.leisure:
         plotter.plot_leisure()
+    elif args.demography:
+        plotter.plot_demography()
     else:
         plotter.plot_all()

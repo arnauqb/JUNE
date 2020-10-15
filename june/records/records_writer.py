@@ -5,10 +5,12 @@ import yaml
 import numpy as np
 import csv
 import json
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List
 from collections import Counter, defaultdict
+import subprocess
 import june
 from june.groups import Supergroup
 from june.records.event_records_writer import (
@@ -113,9 +115,7 @@ class Record:
         for hospital in world.hospitals:
             if not hospital.external:
                 current_hospitalised[hospital.region_name] += len(hospital.ward)
-                current_intensive_care[hospital.region_name] += len(
-                    hospital.icu
-                )
+                current_intensive_care[hospital.region_name] += len(hospital.icu)
         return (
             hospital_admissions,
             icu_admissions,
@@ -201,8 +201,7 @@ class Record:
                     )
 
     def combine_outputs(self, remove_left_overs=True):
-        if self.mpi_rank == 0:
-            combine_records(self.record_path, remove_left_overs=remove_left_overs)
+        combine_records(self.record_path, remove_left_overs=remove_left_overs)
 
     def append_dict_to_configs(self, config_dict):
         with open(self.record_path / self.configs_filename, "r") as f:
@@ -238,9 +237,15 @@ class Record:
         if infection_seed is not None:
             infection_seed_dict = {}
             infection_seed_dict["seed_strength"] = infection_seed.seed_strength
-            infection_seed_dict["min_date"] = infection_seed.min_date.strftime("%Y-%m-%d")
-            infection_seed_dict["max_date"] = infection_seed.max_date.strftime("%Y-%m-%d")
-            self.append_dict_to_configs(config_dict={"infection_seed": infection_seed_dict})
+            infection_seed_dict["min_date"] = infection_seed.min_date.strftime(
+                "%Y-%m-%d"
+            )
+            infection_seed_dict["max_date"] = infection_seed.max_date.strftime(
+                "%Y-%m-%d"
+            )
+            self.append_dict_to_configs(
+                config_dict={"infection_seed": infection_seed_dict}
+            )
 
     def parameters_infection(
         self, infection_selector: "InfectionSelector" = None,
@@ -329,7 +334,8 @@ class Record:
                 yaml.safe_dump(configs, f)
 
 
-def combine_summaries(record_path, remove_left_overs=False, full_summary_save_path = None):
+def combine_summaries(record_path, remove_left_overs=False, save_dir=None):
+    record_path = Path(record_path)
     summary_files = record_path.glob("summary.*.csv")
     dfs = []
     for summary_file in summary_files:
@@ -338,16 +344,27 @@ def combine_summaries(record_path, remove_left_overs=False, full_summary_save_pa
             summary_file.unlink()
     summary = pd.concat(dfs)
     summary = summary.groupby(["time_stamp", "region"]).sum()
-    if full_summary_save_path is None:
-        full_summary_save_path = record_path / "summary.csv"
+    if save_dir is None:
+        save_path = record_path
+    else:
+        save_path = Path(save_dir)
+    full_summary_save_path = save_path / "summary.csv"
     summary.to_csv(full_summary_save_path)
 
 
 def combine_hdf5s(
-    record_path, table_names=("infections", "population"), remove_left_overs=False
+    record_path,
+    table_names=("infections", "population"),
+    remove_left_overs=False,
+    save_dir=None,
 ):
     record_files = record_path.glob("june_record.*.h5")
-    with tables.open_file(record_path / "june_record.h5", "w") as merged_record:
+    if save_dir is None:
+        save_path = Path(record_path)
+    else:
+        save_path = Path(save_dir)
+    full_record_save_path = save_path / "june_record.h5"
+    with tables.open_file(full_record_save_path, "w") as merged_record:
         for i, record_file in enumerate(record_files):
             with tables.open_file(str(record_file), "r") as record:
                 datasets = record.root._f_list_nodes()
@@ -366,7 +383,9 @@ def combine_hdf5s(
                 record_file.unlink()
 
 
-def combine_records(record_path, remove_left_overs=False):
+def combine_records(record_path, remove_left_overs=False, save_dir=None):
     record_path = Path(record_path)
-    combine_summaries(record_path, remove_left_overs=remove_left_overs)
-    combine_hdf5s(record_path, remove_left_overs=remove_left_overs)
+    combine_summaries(
+        record_path, remove_left_overs=remove_left_overs, save_dir=save_dir
+    )
+    combine_hdf5s(record_path, remove_left_overs=remove_left_overs, save_dir=save_dir)

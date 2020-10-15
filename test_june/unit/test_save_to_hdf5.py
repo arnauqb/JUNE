@@ -52,11 +52,13 @@ from pytest import fixture
 
 
 class TestSavePeople:
-    def test__save_population(self, full_world):
+    def test__save_population(self, full_world, test_results):
         population = full_world.people
         assert len(population) > 0
-        save_population_to_hdf5(population, "test.hdf5", chunk_size=500)
-        pop_recovered = load_population_from_hdf5("test.hdf5", chunk_size=600)
+        save_population_to_hdf5(population, test_results / "test.hdf5", chunk_size=500)
+        pop_recovered = load_population_from_hdf5(
+            test_results / "test.hdf5", chunk_size=600
+        )
         for person, person2 in zip(population, pop_recovered):
             for attribute_name in [
                 "id",
@@ -84,11 +86,13 @@ class TestSavePeople:
 
 
 class TestSaveHouses:
-    def test__save_households(self, full_world):
+    def test__save_households(self, full_world, test_results):
         households = full_world.households
         assert len(households) > 0
-        save_households_to_hdf5(households, "test.hdf5", chunk_size=500)
-        households_recovered = load_households_from_hdf5("test.hdf5", chunk_size=600)
+        save_households_to_hdf5(households, test_results / "test.hdf5", chunk_size=500)
+        households_recovered = load_households_from_hdf5(
+            test_results / "test.hdf5", chunk_size=600
+        )
         for household, household2 in zip(households, households_recovered):
             for attribute_name in ["id", "max_size", "type"]:
                 attribute = getattr(household, attribute_name)
@@ -100,11 +104,13 @@ class TestSaveHouses:
 
 
 class TestSaveCompanies:
-    def test__save_companies(self, full_world):
+    def test__save_companies(self, full_world, test_results):
         companies = full_world.companies
         assert len(companies) > 0
-        save_companies_to_hdf5(companies, "test.hdf5", chunk_size=500)
-        companies_recovered = load_companies_from_hdf5("test.hdf5", chunk_size=600)
+        save_companies_to_hdf5(companies, test_results / "test.hdf5", chunk_size=500)
+        companies_recovered = load_companies_from_hdf5(
+            test_results / "test.hdf5", chunk_size=600
+        )
         for company, company2 in zip(companies, companies_recovered):
             for attribute_name in ["id", "n_workers_max", "sector"]:
                 attribute = getattr(company, attribute_name)
@@ -116,11 +122,13 @@ class TestSaveCompanies:
 
 
 class TestSaveHospitals:
-    def test__save_hospitals(self, full_world):
+    def test__save_hospitals(self, full_world, test_results):
         hospitals = full_world.hospitals
         assert len(hospitals) > 0
-        save_hospitals_to_hdf5(hospitals, "test.hdf5", chunk_size=500)
-        hospitals_recovered = load_hospitals_from_hdf5("test.hdf5", chunk_size=600)
+        save_hospitals_to_hdf5(hospitals, test_results / "test.hdf5", chunk_size=500)
+        hospitals_recovered = load_hospitals_from_hdf5(
+            test_results / "test.hdf5", chunk_size=600
+        )
         for hospital, hospital2 in zip(hospitals, hospitals_recovered):
             for attribute_name in [
                 "id",
@@ -139,11 +147,13 @@ class TestSaveHospitals:
 
 
 class TestSaveSchools:
-    def test__save_schools(self, full_world):
+    def test__save_schools(self, full_world, test_results):
         schools = full_world.schools
         assert len(schools) > 0
-        save_schools_to_hdf5(schools, "test.hdf5", chunk_size=500)
-        schools_recovered = load_schools_from_hdf5("test.hdf5", chunk_size=600)
+        save_schools_to_hdf5(schools, test_results / "test.hdf5", chunk_size=500)
+        schools_recovered = load_schools_from_hdf5(
+            test_results / "test.hdf5", chunk_size=600
+        )
         for school, school2 in zip(schools, schools_recovered):
             for attribute_name in [
                 "id",
@@ -165,11 +175,13 @@ class TestSaveSchools:
 
 
 class TestSaveCarehomes:
-    def test__save_carehomes(self, full_world):
+    def test__save_carehomes(self, full_world, test_results):
         carehomes = full_world.care_homes
         assert len(carehomes) > 0
-        save_care_homes_to_hdf5(carehomes, "test.hdf5", chunk_size=500)
-        carehomes_recovered = load_care_homes_from_hdf5("test.hdf5", chunk_size=600)
+        save_care_homes_to_hdf5(carehomes, test_results / "test.hdf5", chunk_size=500)
+        carehomes_recovered = load_care_homes_from_hdf5(
+            test_results / "test.hdf5", chunk_size=600
+        )
         for carehome, carehome2 in zip(carehomes, carehomes_recovered):
             for attribute_name in ["id", "n_residents"]:
                 attribute = getattr(carehome, attribute_name)
@@ -181,7 +193,7 @@ class TestSaveCarehomes:
 
 
 class TestSaveGeography:
-    def test__save_geography(self, full_world):
+    def test__save_geography(self, full_world, test_results):
         areas = full_world.areas
         super_areas = full_world.super_areas
         regions = full_world.regions
@@ -189,8 +201,8 @@ class TestSaveGeography:
         assert len(super_areas) > 0
         assert len(regions) > 0
         geography = Geography(areas, super_areas, regions)
-        save_geography_to_hdf5(geography, "test.hdf5")
-        geography_recovered = load_geography_from_hdf5("test.hdf5")
+        save_geography_to_hdf5(geography, test_results / "test.hdf5")
+        geography_recovered = load_geography_from_hdf5(test_results / "test.hdf5")
         for area, area2 in zip(areas, geography_recovered.areas):
             for attribute_name in ["id", "name"]:
                 attribute = getattr(area, attribute_name)
@@ -214,10 +226,8 @@ class TestSaveGeography:
                     assert attribute == attribute2
             assert super_area.coordinates[0] == super_area2.coordinates[0]
             assert super_area.coordinates[1] == super_area2.coordinates[1]
-            
-        for region, region2 in zip(
-            regions, geography_recovered.regions
-        ):
+
+        for region, region2 in zip(regions, geography_recovered.regions):
             for attribute_name in ["id", "name"]:
                 attribute = getattr(region, attribute_name)
                 attribute2 = getattr(region2, attribute_name)
@@ -225,16 +235,17 @@ class TestSaveGeography:
                     assert attribute2 == None
                 else:
                     assert attribute == attribute2
-        
 
 
 class TestSaveTravel:
-    def test__save_cities(self, full_world):
+    def test__save_cities(self, full_world, test_results):
         cities = full_world.cities
         city_transports = full_world.city_transports
         assert len(cities) > 0
-        save_cities_to_hdf5(cities, "test.hdf5")
-        cities_recovered, city_transports_recovered = load_cities_from_hdf5("test.hdf5")
+        save_cities_to_hdf5(cities, test_results / "test.hdf5")
+        cities_recovered, city_transports_recovered = load_cities_from_hdf5(
+            test_results / "test.hdf5"
+        )
         assert len(cities) == len(cities_recovered)
         assert len(city_transports) == len(city_transports_recovered)
         for city, city_recovered in zip(cities, cities_recovered):
@@ -247,13 +258,13 @@ class TestSaveTravel:
             for ct1, ct2 in zip(city.city_transports, city_recovered.city_transports):
                 assert ct1.id == ct2.id
 
-    def test__save_stations(self, full_world):
+    def test__save_stations(self, full_world, test_results):
         stations = full_world.stations
         inter_city_transports = full_world.inter_city_transports
         assert len(stations) > 0
-        save_stations_to_hdf5(stations, "test.hdf5")
+        save_stations_to_hdf5(stations, test_results / "test.hdf5")
         stations_recovered, inter_city_transports_recovered = load_stations_from_hdf5(
-            "test.hdf5"
+            test_results / "test.hdf5"
         )
         assert len(stations) == len(stations_recovered)
         assert len(inter_city_transports) == len(inter_city_transports_recovered)
@@ -270,11 +281,11 @@ class TestSaveTravel:
 
 
 class TestSaveUniversities:
-    def test__save_universities(self, full_world):
+    def test__save_universities(self, full_world, test_results):
         universities = full_world.universities
         assert len(universities) > 0
-        save_universities_to_hdf5(universities, "test.hdf5")
-        universities_recovered = load_universities_from_hdf5("test.hdf5")
+        save_universities_to_hdf5(universities, test_results / "test.hdf5")
+        universities_recovered = load_universities_from_hdf5(test_results / "test.hdf5")
         for uni, uni2 in zip(universities, universities_recovered):
             for attribute_name in [
                 "id",
@@ -292,16 +303,16 @@ class TestSaveUniversities:
 
 
 class TestSaveLeisure:
-    def test__save_social_venues(self, full_world):
+    def test__save_social_venues(self, full_world, test_results):
         save_social_venues_to_hdf5(
             social_venues_list=[
                 full_world.pubs,
                 full_world.groceries,
                 full_world.cinemas,
             ],
-            file_path="test.hdf5",
+            file_path=test_results / "test.hdf5",
         )
-        social_venues_dict = load_social_venues_from_hdf5("test.hdf5")
+        social_venues_dict = load_social_venues_from_hdf5(test_results / "test.hdf5")
         for social_venues_spec, social_venues in social_venues_dict.items():
             for sv1, sv2 in zip(getattr(full_world, social_venues_spec), social_venues):
                 assert sv1.coordinates[0] == sv2.coordinates[0]
@@ -311,9 +322,9 @@ class TestSaveLeisure:
 
 class TestSaveWorld:
     @fixture(name="full_world_loaded", scope="module")
-    def reaload_world(self, full_world):
-        full_world.to_hdf5("test.hdf5")
-        world2 = generate_world_from_hdf5("test.hdf5", chunk_size=500)
+    def reaload_world(self, full_world, test_results):
+        full_world.to_hdf5(test_results / "test.hdf5")
+        world2 = generate_world_from_hdf5(test_results / "test.hdf5", chunk_size=500)
         return world2
 
     def test__save_geography(self, full_world, full_world_loaded):
@@ -330,7 +341,13 @@ class TestSaveWorld:
         ):
             assert super_area1.id == super_area2.id
             assert super_area1.name == super_area2.name
-            for area1, area2 in zip(super_area1.areas, super_area2.areas):
+            assert len(super_area1.areas) == len(super_area2.areas)
+            area1_ids = [area.id for area in super_area1.areas]
+            area2_ids = [area.id for area in super_area2.areas]
+            assert set(area1_ids) == set(area2_ids)
+            sa1_areas = [super_area1.areas[idx] for idx in np.argsort(area1_ids)]
+            sa2_areas = [super_area2.areas[idx] for idx in np.argsort(area2_ids)]
+            for area1, area2 in zip(sa1_areas, sa2_areas):
                 assert area1.id == area2.id
                 assert area1.super_area.id == area2.super_area.id
                 assert area1.super_area.name == area2.super_area.name
@@ -339,15 +356,23 @@ class TestSaveWorld:
                 assert area1.super_area.region.name == area2.super_area.region.name
 
         assert len(full_world.regions) == len(full_world_loaded.regions)
-        for region1, region2 in zip(
-            full_world.regions, full_world_loaded.regions
-        ):
+        for region1, region2 in zip(full_world.regions, full_world_loaded.regions):
             assert region1.id == region2.id
             assert region1.name == region2.name
-            for superarea1, superarea2 in zip(region1.super_areas, region2.super_areas):
+            super_area1_ids = [super_area.id for super_area in region1.super_areas]
+            super_area2_ids = [super_area.id for super_area in region2.super_areas]
+            assert len(super_area1_ids) == len(super_area2_ids)
+            assert set(super_area1_ids) == set(super_area2_ids)
+            region1_super_areas = [
+                region1.super_areas[idx] for idx in np.argsort(super_area1_ids)
+            ]
+            region2_super_areas = [
+                region2.super_areas[idx] for idx in np.argsort(super_area2_ids)
+            ]
+            for superarea1, superarea2 in zip(region1_super_areas, region2_super_areas):
                 assert superarea1.id == superarea2.id
                 assert superarea1.name == superarea2.name
- 
+
     def test__subgroups(self, full_world, full_world_loaded):
         for person1, person2 in zip(full_world.people, full_world_loaded.people):
             assert person1.area.id == person2.area.id
@@ -504,19 +529,31 @@ class TestSaveWorld:
                 )
                 assert np.array_equal(social_venues_id, social_venues_recovered_id)
         for h1, h2 in zip(full_world.households, full_world_loaded.households):
-            if h1.households_to_visit is None:
-                assert h2.households_to_visit is None
+            if "household" not in h1.residences_to_visit:
+                assert "household" not in h2.residences_to_visit
                 continue
-            assert len(h1.households_to_visit) == len(h2.households_to_visit)
-            if h1.care_homes_to_visit is None:
-                assert h2.care_homes_to_visit is None
+            assert len(h1.residences_to_visit["household"]) == len(
+                h2.residences_to_visit["household"]
+            )
+            if "care_home" not in h1.residences_to_visit:
+                assert "care_home" not in h2.residences_to_visit
                 continue
-            assert len(h1.care_homes_to_visit) == len(h2.care_homes_to_visit)
-            if len(h1.households_to_visit) > 0:
-                h1ids = np.sort([relative.id for relative in h1.households_to_visit])
-                h2ids = np.sort([relative.id for relative in h2.households_to_visit])
+            assert len(h1.residences_to_visit["care_home"]) == len(
+                h2.residences_to_visit["care_home"]
+            )
+            if len(h1.residences_to_visit["household"]) > 0:
+                h1ids = np.sort(
+                    [relative.id for relative in h1.residences_to_visit["household"]]
+                )
+                h2ids = np.sort(
+                    [relative.id for relative in h2.residences_to_visit["household"]]
+                )
                 assert np.array_equal(h1ids, h2ids)
-            if len(h1.care_homes_to_visit) > 0:
-                h1ids = np.sort([relative.id for relative in h1.care_homes_to_visit])
-                h2ids = np.sort([relative.id for relative in h2.care_homes_to_visit])
+            if len(h1.residences_to_visit["care_home"]) > 0:
+                h1ids = np.sort(
+                    [relative.id for relative in h1.residences_to_visit["care_home"]]
+                )
+                h2ids = np.sort(
+                    [relative.id for relative in h2.residences_to_visit["care_home"]]
+                )
                 assert np.array_equal(h1ids, h2ids)
