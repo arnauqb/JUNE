@@ -61,7 +61,7 @@ class HealthIndexPlots:
         
         
         f, ax = plt.subplots()
-        ax.plot(range(0, 101), n_infected)
+        ax.plot(range(0, 101), n_infected,linewidth=2, color="green")
         ax.set_xlabel("Age")
         ax.set_ylabel("Inferred infections")
 
