@@ -424,7 +424,14 @@ if __name__ == "__main__":
         default=False,
         action="store_true"
     )
-
+    parser.add_argument(
+        "-i",
+        "--health-index",
+        help="Plot only health index",
+        required=False,
+        default=False,
+        action="store_true"
+    )
     args = parser.parse_args()
     plotter = Plotter.from_file(args.world_filename)
     if args.households:
@@ -433,5 +440,7 @@ if __name__ == "__main__":
         plotter.plot_contact_matrices()
     elif args.demography:
         plotter.plot_demography()
+    elif args.health_index:
+        plotter.plot_health_index()
     else:
         plotter.plot_all()
