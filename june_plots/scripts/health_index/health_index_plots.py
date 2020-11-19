@@ -9,7 +9,11 @@ from june.infection import HealthIndexGenerator, InfectionSelector, SymptomTag
 
 default_seroprev_filename = paths.data_path / "plotting/seroprev.dat"
 
+default_deaths_filename = paths.data_path / "plotting/ons_deaths_interpolated.csv"
+
 default_transmission = paths.configs_path / "defaults/transmission/XNExp.yaml"
+
+default_ukpop_filename = paths.data_path / "input/demography/age_structure_single_year.csv"
 
 class HealthIndexPlots:
     """
@@ -26,9 +30,40 @@ class HealthIndexPlots:
             seroprev[age_min[index] : age_max[index]] = seroprev_by_age[index]
 
         f, ax = plt.subplots()
-        ax.plot(range(0, 105), seroprev * 100, linewidth=2, color="blue")
+        ax.plot(range(0, 105), seroprev, linewidth=2, color="blue")
         ax.set_xlabel("Age")
         ax.set_ylabel("Prevalence" + r"$[\%]$")
+
+        return ax
+    
+      
+    def n_infections_plot(self, default_seroprev_filename=default_seroprev_filename):
+        seroprev_data = pd.read_csv(default_seroprev_filename, skiprows=1, sep=" ")
+        age_min = seroprev_data["Age_bin_minimum"].values
+        age_max = seroprev_data["Age_bin_max"].values
+
+
+        deaths_data = pd.read_csv(default_deaths_filename,sep=(" "),skiprows=0)
+        n_deaths=deaths_data['deaths_total'].values
+
+        age_data=pd.read_csv(default_ukpop_filename,sep=(","),skiprows=0)
+        uk_pop=np.array([sum(age_data[str(i)].values) for i in range(101)])
+
+
+        seroprev_by_age = seroprev_data["Seroprevalence"].values
+        seroprev = np.zeros(age_max[-1])
+
+        for index in range(len(seroprev_by_age)):
+            seroprev[age_min[index] : age_max[index]] = seroprev_by_age[index]
+        seroprev=seroprev/100.0     
+
+        n_infected=seroprev[0:101]*uk_pop+(1-seroprev[0:101])*n_deaths[0:101]
+        
+        
+        f, ax = plt.subplots()
+        ax.plot(range(0, 101), n_infected)
+        ax.set_xlabel("Age")
+        ax.set_ylabel("Inferred infections")
 
         return ax
 

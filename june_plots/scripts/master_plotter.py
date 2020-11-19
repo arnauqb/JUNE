@@ -358,6 +358,11 @@ class Plotter:
         prevalence_plot = hi_plots.sero_prevalence_plot()
         prevalence_plot.plot()
         plt.savefig(save_dir / "prevalence_plots.png", dpi=150, bbox_inches="tight")
+        
+        print ("Plotting inferred infections")
+        prevalence_plot = hi_plots.n_infections_plot()
+        prevalence_plot.plot()
+        plt.savefig(save_dir / "inferred_infections_plots.png", dpi=150, bbox_inches="tight")
 
         print ("Plotting rates")
         rates_plot = hi_plots.rates_plot()
