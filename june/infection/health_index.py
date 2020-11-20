@@ -451,9 +451,6 @@ class HealthIndexGenerator:
         else:
             probabilities = self.prob_lists[sex][min(99, int(person.age))]
         
-        
-        
-        
         #if self.male_care_home_ratios is not None and self.female_care_home_ratios is not None:
         #    probabilities = self.adjust_hospitalisation(
         #        probabilities, person, 
@@ -466,21 +463,15 @@ class HealthIndexGenerator:
             )
         return np.cumsum(probabilities)
 
-    def adjust_hospitalisation(self, probabilities, person, male_care_home_ratio,
-            female_care_home_ratio):
+    def adjust_hospitalisation(self, probabilities, person,): 
         if (
-            person.age >= 65
-            and person.residence is not None
-            and person.residence.group.spec != "care_home"
+            person.residence is not None
+            and person.residence.group.spec == "household"
         ):
-            # 10% of the deaths were of care home residents in realitiy, thus
-            # the factor 0.9
-            if person.sex == 'm':
-                correction_factor = 0.9 / (1 - male_care_home_ratio[person.age])
-            elif person.sex == 'f':
-                correction_factor = 0.9 / (1 - female_care_home_ratio[person.age])
+            correction_hospital_deaths = 1.5
+            correction_home_deaths = 1./9.
             last_probability = 1 - sum(probabilities)
-            probabilities[[3, 4, 6]] *= correction_factor
+            probabilities[[7]] *= correction_factor
             last_probability *= correction_factor
             probabilities[:3] *= (1 - sum(probabilities[3:]) - last_probability) / sum(
                 probabilities[:3]
