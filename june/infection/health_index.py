@@ -491,8 +491,8 @@ class HealthIndexGenerator:
             probabilities[5] *= correction_home_deaths 
             probabilities[6] *= correction_hospital_deaths
             last_probability *= correction_hospital_deaths
-            probabilities[:4] *= (1 - sum(probabilities[4:]) - last_probability) / sum(
-                probabilities[:4]
+            probabilities[:2] *= (1 - sum(probabilities[2:]) - last_probability) / sum(
+                probabilities[:2]
             )
         return probabilities
 

@@ -240,6 +240,8 @@ def test__apply_hack():
     adjusted_hi = np.diff(adjusted_hi, prepend=0, append=1.)
     assert sum(hi) == 1.
     assert sum(adjusted_hi) == 1.
+    assert adjusted_hi[3] == pytest.approx(hi[3], rel=0.01)
+    assert adjusted_hi[4] == pytest.approx(hi[4], rel=0.01)
     assert adjusted_hi[5] == pytest.approx(hi[5]/9, rel=0.01)
     assert adjusted_hi[6] == pytest.approx(hi[6]*1.5, rel=0.01)
     assert adjusted_hi[7] == pytest.approx(hi[7]*1.5, rel=0.01)
