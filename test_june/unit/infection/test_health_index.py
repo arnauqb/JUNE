@@ -246,3 +246,8 @@ def test__apply_hack():
     assert adjusted_hi[6] == pytest.approx(hi[6]*1.5, rel=0.01)
     assert adjusted_hi[7] == pytest.approx(hi[7]*1.5, rel=0.01)
 
+    dummy = Person.from_attributes(sex="f", age=0,)
+    adjusted_hi = adjusted_health_index(dummy)
+    adjusted_hi = np.diff(adjusted_hi, prepend=0, append=1.)
+    for hi in adjusted_hi:
+        assert hi >= 0
