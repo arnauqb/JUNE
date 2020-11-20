@@ -62,8 +62,7 @@ class HealthIndexGenerator:
         asymptomatic_ratio=0.2,
         comorbidity_multipliers: Optional[dict] = None,
         prevalence_reference_population: Optional[dict] = None,
-        male_care_home_ratios: Optional[List] = None,
-        female_care_home_ratios: Optional[List] = None,
+        hack: bool = False,
     ):
         """
         Parameters:
@@ -93,8 +92,7 @@ class HealthIndexGenerator:
         self.death_home = death_home
         self.death_home_ch = death_home_ch
         self.asymptomatic_ratio = asymptomatic_ratio
-        self.female_care_home_ratios = female_care_home_ratios
-        self.male_care_home_ratios = male_care_home_ratios
+        self.hack = hack
         self.prob_lists=self.make_list(age=self.age,death_home=self.death_home,
                                        hosp_cases=self.hosp_cases,icu_hosp=self.icu_hosp ,death_hosp=self.death_hosp)
         
@@ -137,6 +135,7 @@ class HealthIndexGenerator:
         comorbidity_multipliers=None,
         prevalence_reference_population=None,
         care_home_ratios_filename: Optional[str] =None,
+        hack:bool = False,
     ) -> "HealthIndexGenerator":
         """
         Initialize the Health index from path to data frame, and path to config file 
@@ -216,17 +215,6 @@ class HealthIndexGenerator:
         hosp_cases_ch_data=np.loadtxt(hosp_cases_ch_filename,skiprows=1)
         age_hosp_cases= hosp_cases_ch_data[:,0]
         hosp_cases_ch= [hosp_cases_ch_data[:,1],hosp_cases_ch_data[:,2]]#This will change when done for male and female
-       
-
-
-        if care_home_ratios_filename is not None:
-            with open(care_home_ratios_filename) as f:
-                care_home_ratios = yaml.load(f, Loader=yaml.FullLoader)
-            male_care_home_ratios = care_home_ratios['male']
-            female_care_home_ratios = care_home_ratios['female']
-        else:
-            male_care_home_ratios = None
-            female_care_home_ratios = None
         return cls(
             hosp_cases,
             hosp_cases_ch,
@@ -238,8 +226,7 @@ class HealthIndexGenerator:
             asymptomatic_ratio,
             comorbidity_multipliers=comorbidity_multipliers,
             prevalence_reference_population=prevalence_reference_population,
-            male_care_home_ratios=male_care_home_ratios,
-            female_care_home_ratios=female_care_home_ratios,
+            hack=hack
         )
 
     @classmethod
@@ -451,19 +438,17 @@ class HealthIndexGenerator:
         else:
             probabilities = self.prob_lists[sex][min(99, int(person.age))]
         
-        #if self.male_care_home_ratios is not None and self.female_care_home_ratios is not None:
-        #    probabilities = self.adjust_hospitalisation(
-        #        probabilities, person, 
-        #        male_care_home_ratio=self.male_care_home_ratios,
-        #        female_care_home_ratio=self.female_care_home_ratios,
-        #    )
+        if self.hack:
+            probabilities = self.adjust_hack(
+                probabilities, person, 
+            )
         if hasattr(self, "comorbidity_multipliers") and person.comorbidity is not None:
             probabilities = self.adjust_for_comorbidities(
                 probabilities, person.comorbidity, person.age, person.sex
             )
         return np.cumsum(probabilities)
 
-    def adjust_hospitalisation(self, probabilities, person,): 
+    def adjust_hack(self, probabilities, person,): 
         if (
             person.residence is not None
             and person.residence.group.spec == "household"
@@ -471,10 +456,11 @@ class HealthIndexGenerator:
             correction_hospital_deaths = 1.5
             correction_home_deaths = 1./9.
             last_probability = 1 - sum(probabilities)
-            probabilities[[7]] *= correction_factor
-            last_probability *= correction_factor
-            probabilities[:3] *= (1 - sum(probabilities[3:]) - last_probability) / sum(
-                probabilities[:3]
+            probabilities[5] *= correction_home_deaths 
+            probabilities[6] *= correction_hospital_deaths
+            last_probability *= correction_hospital_deaths
+            probabilities[:4] *= (1 - sum(probabilities[4:]) - last_probability) / sum(
+                probabilities[:4]
             )
         return probabilities
 

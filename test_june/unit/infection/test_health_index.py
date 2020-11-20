@@ -225,51 +225,22 @@ def test__comorbidities_effect():
         guapo_probabilities[2:].sum(),
         comorbidity_multipliers['guapo']/mean_multiplier_uk * dummy_probabilities[2:].sum()
     )
-'''
-def test__apply_hospitalisation_correction():
+def test__apply_hack():
  
     health_index = HealthIndexGenerator.from_file()
-    adjusted_health_index = HealthIndexGenerator(
-            hosp_cases = health_index.hosp_cases,
-            icu_hosp=health_index.icu_hosp,
-            death_hosp=health_index.death_hosp,
-            asymptomatic_ratio=health_index.asymptomatic_ratio,
-            male_care_home_ratios = [0]*60 + [0.15]*40,
-            female_care_home_ratios = [0]*60 + [0.2]*40,
-    ) # percent of people in age group that doesnt live in a care home
-    dummy = Person.from_attributes(sex="f", age=45,)
+    adjusted_health_index = HealthIndexGenerator.from_file(
+            hack=True
+    )     
+    household = Household()
+    dummy = Person.from_attributes(sex="f", age=90,)
+    household.add(dummy)
     hi = health_index(dummy)
     adjusted_hi = adjusted_health_index(dummy)
-    np.testing.assert_allclose(adjusted_hi, hi)
-    
-    care_home = CareHome()
-    care_home_resident = Person.from_attributes(sex="f", age=80,)
-    care_home.add(care_home_resident)
-    hi = np.diff(health_index(care_home_resident), prepend=0., append=1.)
-    adjusted_hi = np.diff(adjusted_health_index(care_home_resident), prepend=0., append=1.)
-    np.testing.assert_allclose(adjusted_hi, hi)
-    
-    non_resident = Person.from_attributes(sex="f", age=80,)
-    household = Household()
-    household.add(non_resident)
-    hi = np.diff(health_index(non_resident), prepend=0., append=1.)
-    adjusted_hi = np.diff(adjusted_health_index(non_resident), prepend=0., append=1.)
+    hi = np.diff(hi, prepend=0, append=1.)
+    adjusted_hi = np.diff(adjusted_hi, prepend=0, append=1.)
+    assert sum(hi) == 1.
     assert sum(adjusted_hi) == 1.
-    assert adjusted_hi[3] == pytest.approx(hi[3]*0.9/(1-0.2), rel=0.01)
-    assert adjusted_hi[4] == pytest.approx(hi[4]*0.9/(1-0.2), rel=0.01)
-    assert adjusted_hi[5] == hi[5]
-    assert adjusted_hi[6] == pytest.approx(hi[6]*0.9/(1-0.2), rel=0.01)
-    assert adjusted_hi[7] == pytest.approx(hi[7]*0.9/(1-0.2), rel=0.01)
+    assert adjusted_hi[5] == pytest.approx(hi[5]/9, rel=0.01)
+    assert adjusted_hi[6] == pytest.approx(hi[6]*1.5, rel=0.01)
+    assert adjusted_hi[7] == pytest.approx(hi[7]*1.5, rel=0.01)
 
-    non_resident = Person.from_attributes(sex="m", age=80,)
-    household = Household()
-    household.add(non_resident)
-    hi = np.diff(health_index(non_resident), prepend=0., append=1.)
-    adjusted_hi = np.diff(adjusted_health_index(non_resident), prepend=0., append=1.)
-    assert sum(adjusted_hi) == 1.
-    assert adjusted_hi[3] == pytest.approx(hi[3]*0.9/(1-0.15), rel=0.01)
-    assert adjusted_hi[4] == pytest.approx(hi[4]*0.9/(1-0.15), rel=0.01)
-    assert adjusted_hi[5] == hi[5]
-    assert adjusted_hi[6] == pytest.approx(hi[6]*0.9/(1-0.15), rel=0.01)
-    assert adjusted_hi[7] == pytest.approx(hi[7]*0.9/(1-0.15), rel=0.01)
-'''
