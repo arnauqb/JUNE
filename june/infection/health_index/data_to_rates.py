@@ -4,6 +4,7 @@ import numpy as np
 from typing import List
 from june import paths
 from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
 
 default_seroprevalence_file = (
     paths.data_path / "input/health_index/seroprevalence_by_age_imperial.csv"
@@ -83,8 +84,11 @@ def weighted_interpolation(value, weights):
     return weights * value / weights.sum()
 
 
-def _exponential(x, a, b):
-    return a * np.exp(b * x)
+def _exponential(x, a, b, c, d):
+    return a * (np.exp(d*(x + b))) + c
+
+def _linear(x, a, b):
+    return a * x + b
 
 
 class BinInterpolator:
@@ -144,18 +148,29 @@ class BinInterpolator:
         return bin_values
 
     def _function_to_fit(self, age, a, b, sex, is_care_home):
-        weight_function = lambda age: _exponential(age, a, b)
-        return self.get_bin_value(
+        weight_function = lambda age: np.exp(_linear(age, a, b))
+        bin_value = self.get_bin_value(
             weight_function=weight_function, age=age, sex=sex, is_care_home=is_care_home
         )
+        return np.log(bin_value)
 
     def fit(self, sex, is_care_home=False):
-        xdata = [age_bin.left for age_bin in self.values_df.index][:-1]
-        ydata = self.values_df.loc[:, sex].values[:-1]
+        xdata = np.array([age_bin.left for age_bin in self.values_df.index])[1:-2]
+        ydata = self.values_df.loc[:, sex].values[1:-2]
+        ydata_zeros = ydata <= 0
+        xdata = xdata[~ydata_zeros]
+        ydata = ydata[~ydata_zeros]
         func = lambda age, a, b: self._function_to_fit(
-            age=age, a=a, b=b, sex=sex, is_care_home=is_care_home
+            age=age, a=a, b=b,sex=sex, is_care_home=is_care_home
         )
-        popt, _ = curve_fit(f=func, xdata=xdata, ydata=ydata)
+        #interpolator = interp1d(xdata, ydata)
+        popt, _ = curve_fit(f=func, xdata=xdata, ydata=np.log(ydata))
+        ypred = func(xdata, *popt)
+        # asd
+        plt.plot(xdata, np.log(ydata), "o-")
+        plt.plot(xdata, ypred)
+        plt.show()
+
         return lambda age: _exponential(age, *popt)
 
 
@@ -412,8 +427,8 @@ if __name__ == "__main__":
     rates = Data2Rates.from_files()
     weight_function = rates.compute_infection_fatality_rate(sex="male")
     age_range = range(0, 100)
-    plt.plot(age_range, [weight_function(age) for age in age_range])
-    plt.show()
+    #plt.plot(age_range, [weight_function(age) for age in age_range])
+    #plt.show()
 
     # age_range = range(0, 100)
     # popt = rates.compute_infection_fatality_rate(sex="male")
