@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Sized
 from mpi4py import MPI
 import numpy as np
 
@@ -128,6 +129,16 @@ class MovablePeople:
                 print("failing", rank, "f-done")
                 raise
 
+    def combine_skinny_out_with_other(self, other: "MovablePeople"):
+        update_nested(self.skinny_out, other.skinny_out)
+
+def update_nested(d, u):
+    for k, v in u.items():
+        if isinstance(v, dict):
+            d[k] = update_nested(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
 
 def move_info(info2move):
     """
@@ -160,3 +171,44 @@ def move_info(info2move):
     )
 
     return r_buffer, n_sending, n_receiving
+
+def export_import_info(to_export):
+    """
+    a fairly general but slow (?) way to send information between ranks. Send data per rank,
+    recieve corrosponding information coming back.
+    parameters
+    ----------
+    to_export
+        information of the form of a dict {0: data_0, 1: data_1, ..., mpi_rank: data_i, ...}
+        where i == (current) mpi_rank, data_i should have len() == 0, or be None (ie, don't need
+        to . Raise exception if not.
+
+    returns:
+        collated_imports
+            same format as to_export, but imported data.
+    """
+    reqs = []
+    for rank in range(mpi_size):
+        data = to_export[rank]
+        if rank == mpi_rank:
+            if isinstance(data, Sized):
+                assert len(data) == 0
+            else:
+                assert data is None
+            continue
+        reqs.append(mpi_comm.isend(data, dest=rank, tag=600))
+
+    to_import = []
+    for rank in range(mpi_size):
+        if rank == mpi_rank:
+            continue
+        to_import.append(mpi_comm.recv(source=rank, tag=600))
+
+    for r in reqs:
+        r.wait()
+
+    collated_imports = {
+        k:v for d in to_import for k,v in d.items()
+    }
+
+    return collated_imports

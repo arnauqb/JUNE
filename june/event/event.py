@@ -82,10 +82,14 @@ class Events:
         activities: List[str],
         is_weekend: bool,
     ):
+        movable_from_events = []
         for event in self.events:
             if event.is_active(date=date):
-                event.apply(
-                    world=world,
-                    activities=activities,
-                    is_weekend=is_weekend,
+                movable_from_events.append(
+                    event.apply(
+                        world=world,
+                        activities=activities,
+                        is_weekend=is_weekend,
+                    )
                 )
+        return movable_from_events

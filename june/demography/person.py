@@ -41,6 +41,7 @@ class Person(dataobject):
     # activities
     busy: bool = False
     subgroups: Activities = Activities(None, None, None, None, None, None, None)
+    long_range_destination: "LongRangeDestination" = None
     infection: Infection = None
     # infection
     susceptibility: float = 1.0

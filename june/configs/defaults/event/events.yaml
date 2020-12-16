@@ -10,3 +10,13 @@ domestic_care:
     85-100: 0.72 #0.36
     # source : https://www.ageuk.org.uk/globalassets/age-uk/documents/reports-and-publications/reports-and-briefings/health--wellbeing/age_uk_briefing_state_of_health_and_care_of_older_people_july2019.pdf
 
+long_range_visits:
+  start_time: 2020-12-25
+  end_time: 2020-12-27
+  household_travel_probabilities:
+    family: 0.3
+    student: 0.9
+    old: 0.0
+  households_with_individual_destination: ["student", "communal"]
+  general_travel_probability: 0.3 # any other households not listed.
+  d0: 50 # km - this goes in p(d) = 1 / (d + d0), defines min distance for travel.

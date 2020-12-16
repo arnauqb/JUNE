@@ -147,16 +147,22 @@ class ActivityManager:
             )
         # apply events
         if self.events is not None:
-            self.events.apply(
+            movable_from_events = self.events.apply(
                 date=date,
                 world=self.world,
                 activities=activities,
                 is_weekend=is_weekend,
             )
+        else:
+            movable_from_events = [None]
         # move people to subgroups and get going abroad people
         to_send_abroad = self.move_people_to_active_subgroups(
             activities=activities, date=date, days_from_start=self.timer.now
         )
+        for movable in movable_from_events:
+            if movable is not None:
+                to_send_abroad.combine_skinny_out_with_other(movable)
+                del movable
         (
             people_from_abroad,
             n_people_from_abroad,
