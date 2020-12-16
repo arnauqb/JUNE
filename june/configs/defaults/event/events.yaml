@@ -11,8 +11,8 @@ domestic_care:
     # source : https://www.ageuk.org.uk/globalassets/age-uk/documents/reports-and-publications/reports-and-briefings/health--wellbeing/age_uk_briefing_state_of_health_and_care_of_older_people_july2019.pdf
 
 long_range_visits:
-  start_time: 2020-12-25
-  end_time: 2020-12-27
+  start_time: 2020-02-28
+  end_time: 2020-03-02
   household_travel_probabilities:
     family: 0.3
     student: 0.9

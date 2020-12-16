@@ -172,7 +172,7 @@ def move_info(info2move):
 
     return r_buffer, n_sending, n_receiving
 
-def export_import_info(to_export):
+def export_import_info(to_export, collate=False):
     """
     a fairly general but slow (?) way to send information between ranks. Send data per rank,
     recieve corrosponding information coming back.
@@ -198,17 +198,13 @@ def export_import_info(to_export):
             continue
         reqs.append(mpi_comm.isend(data, dest=rank, tag=600))
 
-    to_import = []
+    to_import = {}
     for rank in range(mpi_size):
         if rank == mpi_rank:
             continue
-        to_import.append(mpi_comm.recv(source=rank, tag=600))
+        to_import[rank] = mpi_comm.recv(source=rank, tag=600)
 
     for r in reqs:
         r.wait()
 
-    collated_imports = {
-        k:v for d in to_import for k,v in d.items()
-    }
-
-    return collated_imports
+    return to_import
